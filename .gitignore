@@ -1,0 +1,12 @@
+# Visual Studio
+.vs/
+
+# Build Rust
+target/
+
+# Env
+.env
+
+# Binários .NET
+bin/
+obj/

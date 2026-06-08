@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="TabajarasInterview.AppHost/TabajarasInterview.AppHost.csproj" />
+  <Project Path="TabajarasInterview.ServiceDefaults/TabajarasInterview.ServiceDefaults.csproj" />
+  <Project Path="TabajarasInterview.Web/TabajarasInterview.Web.csproj" />
+</Solution>
