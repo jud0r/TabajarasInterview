@@ -1,64 +1,16 @@
 mod auth;
 mod handlers;
+mod entities;
 
 use axum::{
-    Json, Router, extract::State, routing::{get, post}
+    Router, routing::{get, post}
 };
-use serde::Serialize;
-use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, Statement};
+use sea_orm::{Database, DatabaseConnection};
 use std::net::SocketAddr;
 use tokio::time::{sleep, Duration};
 use handlers::auth::login;
-use axum::http::HeaderMap;
-use crate::auth::jwt::validate_token;
+use handlers::users::get_users;
 
-
-#[derive(Serialize)]
-struct User {
-    id: i32,
-    first_name: String,
-    last_name: String,
-    email: String
-}
-
-
-async fn get_users(
-    State(db): State<DatabaseConnection>,
-    headers: HeaderMap,
-) -> Result<Json<Vec<User>>, &'static str> {
-
-    if let Some(auth_header) = headers.get("authorization") {
-        if let Ok(auth_str) = auth_header.to_str() {
-            if let Some(token) = auth_str.strip_prefix("Bearer ") {
-                if validate_token(token) {
-
-                    let stmt = Statement::from_string(
-                        DbBackend::MySql,
-                        "SELECT id, firstName, lastName, email FROM Users".to_string(),
-                    );
-
-                    let rows = ConnectionTrait::query_all(&db, stmt)
-                        .await
-                        .map_err(|_| "DB error")?;
-
-                    let users = rows
-                        .into_iter()
-                        .map(|row| User {
-                            id: row.try_get("", "id").unwrap(),
-                            first_name: row.try_get("", "firstName").unwrap(),
-                            last_name: row.try_get("", "lastName").unwrap(),
-                            email: row.try_get("", "email").unwrap(),
-                        })
-                        .collect();
-
-                    return Ok(Json(users));
-                }
-            }
-        }
-    }
-
-    Err("Unauthorized")
-}
 
 
 #[tokio::main]
