@@ -2,4 +2,15 @@
 
 pub mod prelude;
 
+pub mod candidate_interview_answers;
+pub mod candidate_interviews;
+pub mod candidates;
+pub mod interview_status;
+pub mod interview_template_questions;
+pub mod interview_templates;
+pub mod position_stacks;
+pub mod position_status;
+pub mod positions;
+pub mod questions;
+pub mod stacks;
 pub mod users;
