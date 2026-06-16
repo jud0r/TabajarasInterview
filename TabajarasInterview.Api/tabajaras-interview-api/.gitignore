@@ -1,1 +1,6 @@
 /target
+
+# Variáveis de ambiente (contém segredos, não versionar)
+.env
+.env.*
+!.env.example

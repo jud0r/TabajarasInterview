@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.4.2">
+﻿<Project Sdk="Aspire.AppHost.Sdk/13.4.2">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -7,10 +7,6 @@
     <Nullable>enable</Nullable>
     <UserSecretsId>c631b793-038c-4acd-9dfa-4c3c1a663037</UserSecretsId>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.MySql" Version="13.4.2" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TabajarasInterview.Web\TabajarasInterview.Web.csproj" />
