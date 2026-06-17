@@ -9,7 +9,7 @@ use sea_orm::{Database, DatabaseConnection};
 use std::net::SocketAddr;
 use tokio::time::{sleep, Duration};
 use handlers::auth::login;
-use handlers::users::get_users;
+use handlers::users::{get_users, create_user};
 
 
 
@@ -25,7 +25,7 @@ async fn main() {
 
     let app = Router::new()        
         .route("/login", post(login))
-        .route("/users", get(get_users))
+        .route("/users", get(get_users).post(create_user))
         .with_state(db);
 
 
