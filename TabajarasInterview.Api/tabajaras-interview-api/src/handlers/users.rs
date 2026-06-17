@@ -1,8 +1,8 @@
-use axum::{Json, extract::State, http::{HeaderMap, StatusCode}};
+use axum::{Json, extract::State, http::StatusCode};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
-use crate::{auth::jwt::validate_token};
+use crate::auth::extractor::AuthUser;
 use crate::entities::users;
 
 #[derive(Serialize)]
@@ -27,27 +27,19 @@ pub struct CreateUserRequest {
     pub password: String,
 }
 
+#[derive(Deserialize, Validate)]
+pub struct UpdateUserRequest {
+    #[validate(length(min = 3, message = "first_name must be at least 3 characters"))]
+    pub first_name: Option<String>,
+    #[validate(length(min = 3, message = "last_name must be at least 3 characters"))]
+    pub last_name: Option<String>,
+}
+
 #[axum::debug_handler]
 pub async fn get_users(
     State(db): State<DatabaseConnection>,
-    headers: HeaderMap,
-) -> Result<Json<Vec<UserResponse>>, (StatusCode, String)> {
-
-    let auth_header = headers
-        .get("authorization")
-        .ok_or((StatusCode::UNAUTHORIZED, "Missing authorization header".to_string()))?;
-
-    let auth_str = auth_header
-        .to_str()
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid authorization header".to_string()))?;
-
-    let token = auth_str
-        .strip_prefix("Bearer ")
-        .ok_or((StatusCode::UNAUTHORIZED, "Invalid Bearer token format".to_string()))?;
-
-    if !validate_token(token) {
-        return Err((StatusCode::UNAUTHORIZED, "Invalid token".to_string()));
-    }
+    _user: AuthUser,
+) -> Result<Json<Vec<UserResponse>>, (StatusCode, &'static str)> {
 
     let users = users::Entity::find()
         .filter(users::Column::DeletedAt.is_null())
@@ -55,7 +47,7 @@ pub async fn get_users(
         .await
         .map_err(|e| {
             println!("DB ERROR: {:?}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, "DB error".to_string())
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
         })?;
 
     let response = users
@@ -113,4 +105,88 @@ pub async fn create_user(
     };
 
     Ok((StatusCode::CREATED, Json(response)))
+}
+
+#[axum::debug_handler]
+pub async fn update_user(
+    State(db): State<DatabaseConnection>,
+    AuthUser(claims): AuthUser,
+    Json(payload): Json<UpdateUserRequest>,
+) -> Result<Json<UserResponse>, (StatusCode, String)> {
+
+    payload
+        .validate()
+        .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+
+    let user = users::Entity::find_by_id(claims.id)
+        .filter(users::Column::DeletedAt.is_null())
+        .one(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error".to_string())
+        })?
+        .ok_or((StatusCode::NOT_FOUND, "User not found".to_string()))?;
+
+    let mut active_user: users::ActiveModel = user.into();
+
+    if let Some(first_name) = payload.first_name {
+        active_user.first_name = Set(first_name);
+    }
+
+    if let Some(last_name) = payload.last_name {
+        active_user.last_name = Set(last_name);
+    }
+
+    active_user.updated_at = Set(Some(chrono::Utc::now().naive_utc()));
+
+    let user = active_user
+        .update(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error".to_string())
+        })?;
+
+    let response = UserResponse {
+        id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+    };
+
+    Ok(Json(response))
+}
+
+#[axum::debug_handler]
+pub async fn delete_user(
+    State(db): State<DatabaseConnection>,
+    AuthUser(claims): AuthUser,
+) -> Result<StatusCode, (StatusCode, String)> {
+    
+    let user = users::Entity::find_by_id(claims.id)
+        .filter(users::Column::DeletedAt.is_null())
+        .one(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error".to_string())
+        })?
+        .ok_or((StatusCode::NOT_FOUND, "User not found".to_string()))?;
+
+    let mut active_user: users::ActiveModel = user.into();
+    
+    active_user.deleted_at = Set(Some(chrono::Utc::now().naive_utc()));
+
+    active_user
+        .update(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error".to_string())
+        })?;
+    
+    Ok(StatusCode::NO_CONTENT)
 }

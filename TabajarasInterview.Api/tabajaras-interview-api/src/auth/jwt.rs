@@ -6,25 +6,34 @@ use serde::{Serialize, Deserialize};
 pub struct Claims {
     pub sub: String,
     pub exp: usize,
+    pub id: i32
 }
 
-const SECRET: &[u8] = b"mysecretkey";
+fn secret() -> String {
+    std::env::var("SECRET").expect("SECRET not set")
+}
 
-pub fn generate_token(username: &str) -> String {
+pub fn generate_token(email: &str, id: i32) -> String {
     let claims = Claims {
-        sub: username.to_string(),
+        sub: email.to_string(),
         exp: 2000000000,
+        id : id
     };
 
-    encode(&Header::default(), &claims, &EncodingKey::from_secret(SECRET))
-        .unwrap()
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret().as_bytes()),
+    )
+    .unwrap()
 }
 
-pub fn validate_token(token: &str) -> bool {
+pub fn decode_token(token: &str) -> Option<Claims> {
     decode::<Claims>(
         token,
-        &DecodingKey::from_secret(SECRET),
+        &DecodingKey::from_secret(secret().as_bytes()),
         &Validation::default(),
     )
-    .is_ok()
+    .map(|data| data.claims)
+    .ok()
 }
