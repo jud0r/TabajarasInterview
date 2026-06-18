@@ -1,18 +1,19 @@
 use axum::{Json, extract::State, http::StatusCode};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::auth::jwt::{decode_token, generate_refresh_token, generate_token, hash_token, TokenType};
 use crate::entities::{refresh_tokens, users};
 use crate::handlers::users::UserResponse;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct LoginResponse {
     pub access_token: String,
     pub expires_in: i64,
@@ -20,12 +21,12 @@ pub struct LoginResponse {
     pub user: UserResponse
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct RefreshRequest {
     pub refresh_token: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct RefreshResponse {
     pub access_token: String,
     pub expires_in: i64,
@@ -59,6 +60,16 @@ async fn store_refresh_token(
     Ok(())
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/auth/login",
+    tag = "auth",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "Login succeeded", body = LoginResponse),
+        (status = 401, description = "Invalid credentials")
+    )
+)]
 #[axum::debug_handler]
 pub async fn login(
     State(db): State<DatabaseConnection>,
@@ -105,6 +116,16 @@ pub async fn login(
     Ok(Json(response))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/auth/refresh",
+    tag = "auth",
+    request_body = RefreshRequest,
+    responses(
+        (status = 200, description = "Token refreshed", body = RefreshResponse),
+        (status = 401, description = "Invalid or expired refresh token")
+    )
+)]
 #[axum::debug_handler]
 pub async fn refresh(
     State(db): State<DatabaseConnection>,

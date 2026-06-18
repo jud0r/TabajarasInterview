@@ -1,11 +1,12 @@
 use axum::{Json, extract::State, http::StatusCode};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use validator::Validate;
 use crate::auth::extractor::AuthUser;
 use crate::entities::users;
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct UserResponse {
     pub id: i32,
     pub first_name: String,
@@ -15,7 +16,7 @@ pub struct UserResponse {
     pub updated_at: Option<sea_orm::prelude::DateTime>,
 }
 
-#[derive(Deserialize, Validate)]
+#[derive(Deserialize, Validate, ToSchema)]
 pub struct CreateUserRequest {
     #[validate(length(min = 3, message = "first_name must be at least 3 characters"))]
     pub first_name: String,
@@ -27,13 +28,24 @@ pub struct CreateUserRequest {
     pub password: String,
 }
 
-#[derive(Deserialize, Validate)]
+#[derive(Deserialize, Validate, ToSchema)]
 pub struct UpdateUserRequest {
     #[validate(length(min = 3, message = "first_name must be at least 3 characters"))]
     pub first_name: Option<String>,
     #[validate(length(min = 3, message = "last_name must be at least 3 characters"))]
     pub last_name: Option<String>,
 }
+
+#[utoipa::path(
+    get,
+    path = "/api/users/get_all",
+    tag = "users",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "List users", body = [UserResponse]),
+        (status = 401, description = "Unauthorized")
+    )
+)]
 
 #[axum::debug_handler]
 pub async fn get_users(
@@ -65,6 +77,16 @@ pub async fn get_users(
     Ok(Json(response))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/users/create",
+    tag = "users",
+    request_body = CreateUserRequest,
+    responses(
+        (status = 201, description = "User created", body = UserResponse),
+        (status = 400, description = "Validation error")
+    )
+)]
 #[axum::debug_handler]
 pub async fn create_user(
     State(db): State<DatabaseConnection>,
@@ -107,6 +129,56 @@ pub async fn create_user(
     Ok((StatusCode::CREATED, Json(response)))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/users/get",
+    tag = "users",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Get current user", body = UserResponse),
+        (status = 401, description = "Unauthorized"),
+        (status = 404, description = "User not found")
+    )
+)]
+#[axum::debug_handler]
+pub async fn get_user(
+    State(db): State<DatabaseConnection>,
+    AuthUser(claims): AuthUser
+) -> Result<Json<UserResponse>, (StatusCode, &'static str)> {
+    let user = users::Entity::find_by_id(claims.id)
+        .filter(users::Column::DeletedAt.is_null())
+        .one(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?
+        .ok_or((StatusCode::NOT_FOUND, "User not found"))?;
+
+    let response = UserResponse {
+        id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+    };
+
+    Ok(Json(response))
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/users/update",
+    tag = "users",
+    security(("bearer_auth" = [])),
+    request_body = UpdateUserRequest,
+    responses(
+        (status = 200, description = "User updated", body = UserResponse),
+        (status = 401, description = "Unauthorized"),
+        (status = 404, description = "User not found")
+    )
+)]
 #[axum::debug_handler]
 pub async fn update_user(
     State(db): State<DatabaseConnection>,
@@ -160,6 +232,17 @@ pub async fn update_user(
     Ok(Json(response))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/users/delete",
+    tag = "users",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 204, description = "User deleted"),
+        (status = 401, description = "Unauthorized"),
+        (status = 404, description = "User not found")
+    )
+)]
 #[axum::debug_handler]
 pub async fn delete_user(
     State(db): State<DatabaseConnection>,
