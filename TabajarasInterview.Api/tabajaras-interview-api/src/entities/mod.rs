@@ -12,5 +12,6 @@ pub mod position_stacks;
 pub mod position_status;
 pub mod positions;
 pub mod questions;
+pub mod refresh_tokens;
 pub mod stacks;
 pub mod users;

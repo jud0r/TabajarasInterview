@@ -2,7 +2,7 @@ use axum::extract::FromRequestParts;
 use axum::http::StatusCode;
 use axum::http::request::Parts;
 
-use crate::auth::jwt::{decode_token, Claims};
+use crate::auth::jwt::{decode_token, Claims, TokenType};
 
 pub struct AuthUser(pub Claims);
 
@@ -28,6 +28,10 @@ where
 
         let claims = decode_token(token)
             .ok_or((StatusCode::UNAUTHORIZED, "Invalid token"))?;
+
+        if claims.token_type != TokenType::Access {
+            return Err((StatusCode::UNAUTHORIZED, "Invalid token type"));
+        }
 
         Ok(AuthUser(claims))
     }

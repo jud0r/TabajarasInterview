@@ -25,6 +25,8 @@ pub enum Relation {
     InterviewTemplates,
     #[sea_orm(has_many = "super::positions::Entity")]
     Positions,
+    #[sea_orm(has_many = "super::refresh_tokens::Entity")]
+    RefreshTokens,
 }
 
 impl Related<super::candidate_interviews::Entity> for Entity {
@@ -42,6 +44,12 @@ impl Related<super::interview_templates::Entity> for Entity {
 impl Related<super::positions::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Positions.def()
+    }
+}
+
+impl Related<super::refresh_tokens::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RefreshTokens.def()
     }
 }
 
