@@ -7,13 +7,14 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
+    pub candidate_process_id: i32,
     pub interview_template_id: i32,
-    pub candidate_id: i32,
     pub interviewer_id: i32,
-    pub scheduled_at: Option<DateTime>,
-    pub started_at: Option<DateTime>,
-    pub finished_at: Option<DateTime>,
     pub status: i32,
+    pub scheduled_at: Option<DateTime>,
+    pub started_at: DateTime,
+    pub finished_at: Option<DateTime>,
+    pub interview_name: String,
     #[sea_orm(column_type = "Text", nullable)]
     pub overall_comments: Option<String>,
     #[sea_orm(column_type = "Decimal(Some((5, 2)))", nullable)]
@@ -28,13 +29,13 @@ pub enum Relation {
     #[sea_orm(has_many = "super::candidate_interview_answers::Entity")]
     CandidateInterviewAnswers,
     #[sea_orm(
-        belongs_to = "super::candidates::Entity",
-        from = "Column::CandidateId",
-        to = "super::candidates::Column::Id",
+        belongs_to = "super::candidate_processes::Entity",
+        from = "Column::CandidateProcessId",
+        to = "super::candidate_processes::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    Candidates,
+    CandidateProcesses,
     #[sea_orm(
         belongs_to = "super::interview_status::Entity",
         from = "Column::Status",
@@ -67,9 +68,9 @@ impl Related<super::candidate_interview_answers::Entity> for Entity {
     }
 }
 
-impl Related<super::candidates::Entity> for Entity {
+impl Related<super::candidate_processes::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Candidates.def()
+        Relation::CandidateProcesses.def()
     }
 }
 

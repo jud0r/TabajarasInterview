@@ -37,8 +37,6 @@ impl utoipa::Modify for SecurityAddon {
     }
 }
 
-
-
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
@@ -71,7 +69,6 @@ async fn main() {
     .unwrap();
 }
 
-
 async fn connect_with_retry(database_url: &str) -> DatabaseConnection {
     loop {
         match Database::connect(database_url).await {
@@ -86,5 +83,3 @@ async fn connect_with_retry(database_url: &str) -> DatabaseConnection {
         }
     }
 }
-
-

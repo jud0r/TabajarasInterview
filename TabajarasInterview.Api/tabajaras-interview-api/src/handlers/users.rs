@@ -58,7 +58,6 @@ pub struct UpdateUserRequest {
         (status = 401, description = "Unauthorized")
     )
 )]
-
 #[axum::debug_handler]
 pub async fn get_users(
     State(db): State<DatabaseConnection>,

@@ -3,6 +3,7 @@
 #![allow(unused_imports)]
 pub use super::candidate_interview_answers::Entity as CandidateInterviewAnswers;
 pub use super::candidate_interviews::Entity as CandidateInterviews;
+pub use super::candidate_processes::Entity as CandidateProcesses;
 pub use super::candidates::Entity as Candidates;
 pub use super::interview_status::Entity as InterviewStatus;
 pub use super::interview_template_questions::Entity as InterviewTemplateQuestions;
@@ -10,6 +11,7 @@ pub use super::interview_templates::Entity as InterviewTemplates;
 pub use super::position_stacks::Entity as PositionStacks;
 pub use super::position_status::Entity as PositionStatus;
 pub use super::positions::Entity as Positions;
+pub use super::process_status::Entity as ProcessStatus;
 pub use super::questions::Entity as Questions;
 pub use super::refresh_tokens::Entity as RefreshTokens;
 pub use super::stacks::Entity as Stacks;
