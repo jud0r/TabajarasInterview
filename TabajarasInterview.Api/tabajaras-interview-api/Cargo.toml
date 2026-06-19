@@ -24,3 +24,4 @@ sha2 = "0.10"
 hex = "0.4"
 utoipa = { version = "5", features = ["axum_extras", "chrono"] }
 utoipa-swagger-ui = { version = "9", features = ["axum"] }
+utoipa-axum = "0.2"

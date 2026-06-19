@@ -2,9 +2,21 @@ use axum::{Json, extract::State, http::StatusCode};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use utoipa_axum::router::OpenApiRouter;
+use utoipa_axum::routes;
 use validator::Validate;
 use crate::auth::extractor::AuthUser;
 use crate::entities::users;
+
+/// Build the OpenAPI-aware router for the user endpoints.
+pub fn router() -> OpenApiRouter<DatabaseConnection> {
+    OpenApiRouter::new()
+        .routes(routes!(get_users))
+        .routes(routes!(get_user))
+        .routes(routes!(create_user))
+        .routes(routes!(update_user))
+        .routes(routes!(delete_user))
+}
 
 #[derive(Serialize, ToSchema)]
 pub struct UserResponse {
@@ -38,7 +50,7 @@ pub struct UpdateUserRequest {
 
 #[utoipa::path(
     get,
-    path = "/api/users/get_all",
+    path = "/get_all",
     tag = "users",
     security(("bearer_auth" = [])),
     responses(
@@ -79,7 +91,7 @@ pub async fn get_users(
 
 #[utoipa::path(
     post,
-    path = "/api/users/create",
+    path = "/create",
     tag = "users",
     request_body = CreateUserRequest,
     responses(
@@ -131,7 +143,7 @@ pub async fn create_user(
 
 #[utoipa::path(
     get,
-    path = "/api/users/get",
+    path = "/get",
     tag = "users",
     security(("bearer_auth" = [])),
     responses(
@@ -169,7 +181,7 @@ pub async fn get_user(
 
 #[utoipa::path(
     put,
-    path = "/api/users/update",
+    path = "/update",
     tag = "users",
     security(("bearer_auth" = [])),
     request_body = UpdateUserRequest,
@@ -234,7 +246,7 @@ pub async fn update_user(
 
 #[utoipa::path(
     delete,
-    path = "/api/users/delete",
+    path = "/delete",
     tag = "users",
     security(("bearer_auth" = [])),
     responses(

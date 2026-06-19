@@ -2,10 +2,19 @@ use axum::{Json, extract::State, http::StatusCode};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use utoipa_axum::router::OpenApiRouter;
+use utoipa_axum::routes;
 
 use crate::auth::jwt::{decode_token, generate_refresh_token, generate_token, hash_token, TokenType};
 use crate::entities::{refresh_tokens, users};
 use crate::handlers::users::UserResponse;
+
+/// Build the OpenAPI-aware router for the auth endpoints.
+pub fn router() -> OpenApiRouter<DatabaseConnection> {
+    OpenApiRouter::new()
+        .routes(routes!(login))
+        .routes(routes!(refresh))
+}
 
 #[derive(Deserialize, ToSchema)]
 pub struct LoginRequest {
@@ -62,7 +71,7 @@ async fn store_refresh_token(
 
 #[utoipa::path(
     post,
-    path = "/api/auth/login",
+    path = "/login",
     tag = "auth",
     request_body = LoginRequest,
     responses(
@@ -118,7 +127,7 @@ pub async fn login(
 
 #[utoipa::path(
     post,
-    path = "/api/auth/refresh",
+    path = "/refresh",
     tag = "auth",
     request_body = RefreshRequest,
     responses(
