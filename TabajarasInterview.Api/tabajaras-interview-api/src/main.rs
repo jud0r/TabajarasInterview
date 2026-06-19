@@ -16,6 +16,7 @@ use utoipa_swagger_ui::SwaggerUi;
     tags(
         (name = "auth", description = "Authentication endpoints"),
         (name = "users", description = "User management endpoints"),
+        (name = "candidates", description = "Candidate management endpoints"),
     )
 )]
 struct ApiDoc;
@@ -50,6 +51,7 @@ async fn main() {
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .nest("/api/auth", handlers::auth::router())
         .nest("/api/users", handlers::users::router())
+        .nest("/api/candidates", handlers::candidates::router())
         .split_for_parts();
 
     let app = router
