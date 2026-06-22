@@ -3,13 +3,15 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "interview_template_questions")]
+#[sea_orm(table_name = "interview_questions")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub interview_template_id: i32,
+    pub interview_id: i32,
     pub question_id: i32,
     pub question_order: i32,
+    #[sea_orm(column_type = "Decimal(Some((5, 2)))", nullable)]
+    pub score: Option<Decimal>,
     pub created_at: DateTime,
     pub updated_at: Option<DateTime>,
     pub deleted_at: Option<DateTime>,
@@ -17,16 +19,14 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::candidate_interview_answers::Entity")]
-    CandidateInterviewAnswers,
     #[sea_orm(
-        belongs_to = "super::interview_templates::Entity",
-        from = "Column::InterviewTemplateId",
-        to = "super::interview_templates::Column::Id",
+        belongs_to = "super::interviews::Entity",
+        from = "Column::InterviewId",
+        to = "super::interviews::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    InterviewTemplates,
+    Interviews,
     #[sea_orm(
         belongs_to = "super::questions::Entity",
         from = "Column::QuestionId",
@@ -37,15 +37,9 @@ pub enum Relation {
     Questions,
 }
 
-impl Related<super::candidate_interview_answers::Entity> for Entity {
+impl Related<super::interviews::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::CandidateInterviewAnswers.def()
-    }
-}
-
-impl Related<super::interview_templates::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::InterviewTemplates.def()
+        Relation::Interviews.def()
     }
 }
 

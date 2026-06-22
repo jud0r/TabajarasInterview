@@ -3,16 +3,16 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "candidate_processes")]
+#[sea_orm(table_name = "candidate_applications")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub candidate_id: i32,
     pub position_id: i32,
-    pub status: i32,
+    pub status: String,
     pub started_at: DateTime,
     pub finished_at: Option<DateTime>,
-    #[sea_orm(column_type = "Decimal(Some((10, 0)))", nullable)]
+    #[sea_orm(column_type = "Decimal(Some((5, 2)))", nullable)]
     pub final_score: Option<Decimal>,
     #[sea_orm(column_type = "Text", nullable)]
     pub final_comments: Option<String>,
@@ -23,8 +23,6 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::candidate_interviews::Entity")]
-    CandidateInterviews,
     #[sea_orm(
         belongs_to = "super::candidates::Entity",
         from = "Column::CandidateId",
@@ -33,6 +31,8 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     Candidates,
+    #[sea_orm(has_many = "super::interviews::Entity")]
+    Interviews,
     #[sea_orm(
         belongs_to = "super::positions::Entity",
         from = "Column::PositionId",
@@ -41,20 +41,6 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     Positions,
-    #[sea_orm(
-        belongs_to = "super::process_status::Entity",
-        from = "Column::Status",
-        to = "super::process_status::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    ProcessStatus,
-}
-
-impl Related<super::candidate_interviews::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::CandidateInterviews.def()
-    }
 }
 
 impl Related<super::candidates::Entity> for Entity {
@@ -63,15 +49,15 @@ impl Related<super::candidates::Entity> for Entity {
     }
 }
 
-impl Related<super::positions::Entity> for Entity {
+impl Related<super::interviews::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Positions.def()
+        Relation::Interviews.def()
     }
 }
 
-impl Related<super::process_status::Entity> for Entity {
+impl Related<super::positions::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::ProcessStatus.def()
+        Relation::Positions.def()
     }
 }
 

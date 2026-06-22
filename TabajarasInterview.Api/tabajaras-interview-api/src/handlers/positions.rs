@@ -7,7 +7,7 @@ use utoipa_axum::routes;
 use validator::Validate;
 
 use crate::auth::extractor::AuthUser;
-use crate::entities::positions;
+use crate::entities::{positions};
 
 /// Build the OpenAPI-aware router for the position endpoints.
 pub fn router() -> OpenApiRouter<DatabaseConnection> {
@@ -19,12 +19,54 @@ pub fn router() -> OpenApiRouter<DatabaseConnection> {
         .routes(routes!(delete_position))
 }
 
+/// Possible statuses for a position.
+///
+/// The serialized snake_case value is what gets stored in the
+/// `positions.status` column.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PositionStatus {
+    Draft,
+    Open,
+    OnHold,
+    Closed,
+    Cancelled,
+}
+
+impl PositionStatus {
+    /// Returns the canonical string stored in the database.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            PositionStatus::Draft => "Draft",
+            PositionStatus::Open => "Open",
+            PositionStatus::OnHold => "OnHold",
+            PositionStatus::Closed => "Closed",
+            PositionStatus::Cancelled => "Cancelled",
+        }
+    }
+}
+
+impl std::str::FromStr for PositionStatus {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "Draft" => Ok(PositionStatus::Draft),
+            "Open" => Ok(PositionStatus::Open),
+            "OnHold" => Ok(PositionStatus::OnHold),
+            "Closed" => Ok(PositionStatus::Closed),
+            "Cancelled" => Ok(PositionStatus::Cancelled),
+            other => Err(other.to_string()),
+        }
+    }
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct PositionResponse {
     pub id: i32,
     pub title: String,
     pub description: Option<String>,
-    pub status: i32,
+    pub status: PositionStatus,
     pub created_by: i32,
     pub updated_at: Option<sea_orm::prelude::DateTime>,
     pub created_at: sea_orm::prelude::DateTime,
@@ -35,7 +77,7 @@ pub struct CreatePositionRequest {
     #[validate(length(min = 3, message = "title must be at least 3 characters"))]
     pub title: String,
     pub description: Option<String>,
-    pub status: i32,
+    pub status: PositionStatus,
 }
 
 #[derive(Deserialize, Validate, ToSchema)]
@@ -43,7 +85,20 @@ pub struct UpdatePositionRequest {
     #[validate(length(min = 3, message = "title must be at least 3 characters"))]
     pub title: Option<String>,
     pub description: Option<String>,
-    pub status: Option<i32>,
+    pub status: Option<PositionStatus>,
+}
+
+fn to_response(model: positions::Model) -> Result<PositionResponse, (StatusCode, &'static str)> {
+    Ok(PositionResponse {
+        id: model.id,
+        title: model.title,
+        description: model.description,
+        status: model.status.parse::<PositionStatus>()
+            .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Unknown position status"))?,
+        created_by: model.created_by,
+        updated_at: model.updated_at,
+        created_at: model.created_at,
+    })
 }
 
 #[utoipa::path(
@@ -73,16 +128,8 @@ pub async fn get_positions(
 
     let response = positions
         .into_iter()
-        .map(|p| PositionResponse {
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            status: p.status,
-            created_by: p.created_by,
-            updated_at: p.updated_at,
-            created_at: p.created_at,
-        })
-        .collect();
+        .map(to_response)
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(Json(response))
 }
@@ -113,7 +160,7 @@ pub async fn create_position(
     let new_position = positions::ActiveModel {
         title: Set(payload.title),
         description: Set(payload.description),
-        status: Set(payload.status),
+        status: Set(payload.status.as_str().to_string()),
         created_by: Set(user.0.id),
         created_at: Set(chrono::Utc::now().naive_utc()),
         ..Default::default()
@@ -127,15 +174,7 @@ pub async fn create_position(
             (StatusCode::INTERNAL_SERVER_ERROR, "DB error".to_string())
         })?;
 
-    let response = PositionResponse {
-        id: position.id,
-        title: position.title,
-        description: position.description,
-        status: position.status,
-        created_by: position.created_by,
-        updated_at: position.updated_at,
-        created_at: position.created_at,
-    };
+    let response = to_response(position).map_err(|(s, m)| (s, m.to_string()))?;
 
     Ok((StatusCode::CREATED, Json(response)))
 }
@@ -169,15 +208,7 @@ pub async fn get_position(
         })?
         .ok_or((StatusCode::NOT_FOUND, "Position not found"))?;
 
-    let response = PositionResponse {
-        id: position.id,
-        title: position.title,
-        description: position.description,
-        status: position.status,
-        created_by: position.created_by,
-        updated_at: position.updated_at,
-        created_at: position.created_at,
-    };
+    let response = to_response(position)?;
 
     Ok(Json(response))
 }
@@ -229,7 +260,7 @@ pub async fn update_position(
     }
 
     if let Some(status) = payload.status {
-        active_position.status = Set(status);
+        active_position.status = Set(status.as_str().to_string());
     }
 
     active_position.updated_at = Set(Some(chrono::Utc::now().naive_utc()));
@@ -242,15 +273,7 @@ pub async fn update_position(
             (StatusCode::INTERNAL_SERVER_ERROR, "DB error".to_string())
         })?;
 
-    let response = PositionResponse {
-        id: position.id,
-        title: position.title,
-        description: position.description,
-        status: position.status,
-        created_by: position.created_by,
-        updated_at: position.updated_at,
-        created_at: position.created_at,
-    };
+    let response = to_response(position).map_err(|(s, m)| (s, m.to_string()))?;
 
     Ok(Json(response))
 }

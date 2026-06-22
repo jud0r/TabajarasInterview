@@ -19,25 +19,17 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::candidate_interviews::Entity")]
-    CandidateInterviews,
-    #[sea_orm(has_many = "super::interview_templates::Entity")]
-    InterviewTemplates,
+    #[sea_orm(has_many = "super::interviews::Entity")]
+    Interviews,
     #[sea_orm(has_many = "super::positions::Entity")]
     Positions,
     #[sea_orm(has_many = "super::refresh_tokens::Entity")]
     RefreshTokens,
 }
 
-impl Related<super::candidate_interviews::Entity> for Entity {
+impl Related<super::interviews::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::CandidateInterviews.def()
-    }
-}
-
-impl Related<super::interview_templates::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::InterviewTemplates.def()
+        Relation::Interviews.def()
     }
 }
 

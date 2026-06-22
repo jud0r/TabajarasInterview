@@ -3,15 +3,19 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "positions")]
+#[sea_orm(table_name = "interviews")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub created_by: i32,
-    pub title: String,
-    #[sea_orm(column_type = "Text", nullable)]
-    pub description: Option<String>,
+    pub candidate_application_id: i32,
+    pub interviewer_id: i32,
+    pub name: String,
+    pub interview_type: String,
     pub status: String,
+    #[sea_orm(column_type = "Decimal(Some((5, 2)))", nullable)]
+    pub score: Option<Decimal>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub comments: Option<String>,
     pub created_at: DateTime,
     pub updated_at: Option<DateTime>,
     pub deleted_at: Option<DateTime>,
@@ -19,13 +23,19 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::candidate_applications::Entity")]
+    #[sea_orm(
+        belongs_to = "super::candidate_applications::Entity",
+        from = "Column::CandidateApplicationId",
+        to = "super::candidate_applications::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
     CandidateApplications,
-    #[sea_orm(has_many = "super::position_stacks::Entity")]
-    PositionStacks,
+    #[sea_orm(has_many = "super::interview_questions::Entity")]
+    InterviewQuestions,
     #[sea_orm(
         belongs_to = "super::users::Entity",
-        from = "Column::CreatedBy",
+        from = "Column::InterviewerId",
         to = "super::users::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
@@ -39,24 +49,15 @@ impl Related<super::candidate_applications::Entity> for Entity {
     }
 }
 
-impl Related<super::position_stacks::Entity> for Entity {
+impl Related<super::interview_questions::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::PositionStacks.def()
+        Relation::InterviewQuestions.def()
     }
 }
 
 impl Related<super::users::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Users.def()
-    }
-}
-
-impl Related<super::stacks::Entity> for Entity {
-    fn to() -> RelationDef {
-        super::position_stacks::Relation::Stacks.def()
-    }
-    fn via() -> Option<RelationDef> {
-        Some(super::position_stacks::Relation::Positions.def().rev())
     }
 }
 
