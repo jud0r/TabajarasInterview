@@ -17,6 +17,7 @@ use utoipa_swagger_ui::SwaggerUi;
         (name = "auth", description = "Authentication endpoints"),
         (name = "users", description = "User management endpoints"),
         (name = "candidates", description = "Candidate management endpoints"),
+        (name = "positions", description = "Position management endpoints"),
         (name = "stacks", description = "Stack management endpoints"),
         (name = "questions", description = "Question management endpoints"),
     )
@@ -54,6 +55,7 @@ async fn main() {
         .nest("/api/auth", handlers::auth::router())
         .nest("/api/users", handlers::users::router())
         .nest("/api/candidates", handlers::candidates::router())
+        .nest("/api/positions", handlers::positions::router())
         .nest("/api/stacks", handlers::stacks::router())
         .nest("/api/questions", handlers::questions::router())
         .split_for_parts();
