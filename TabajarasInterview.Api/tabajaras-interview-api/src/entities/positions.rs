@@ -13,6 +13,7 @@ pub struct Model {
     pub status: i32,
     pub created_by: i32,
     pub created_at: DateTime,
+    pub updated_at: Option<DateTime>,
     pub deleted_at: Option<DateTime>,
 }
 

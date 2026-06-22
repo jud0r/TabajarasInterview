@@ -26,6 +26,7 @@ pub struct PositionResponse {
     pub description: Option<String>,
     pub status: i32,
     pub created_by: i32,
+    pub updated_at: Option<sea_orm::prelude::DateTime>,
     pub created_at: sea_orm::prelude::DateTime,
 }
 
@@ -78,6 +79,7 @@ pub async fn get_positions(
             description: p.description,
             status: p.status,
             created_by: p.created_by,
+            updated_at: p.updated_at,
             created_at: p.created_at,
         })
         .collect();
@@ -131,6 +133,7 @@ pub async fn create_position(
         description: position.description,
         status: position.status,
         created_by: position.created_by,
+        updated_at: position.updated_at,
         created_at: position.created_at,
     };
 
@@ -172,6 +175,7 @@ pub async fn get_position(
         description: position.description,
         status: position.status,
         created_by: position.created_by,
+        updated_at: position.updated_at,
         created_at: position.created_at,
     };
 
@@ -228,6 +232,8 @@ pub async fn update_position(
         active_position.status = Set(status);
     }
 
+    active_position.updated_at = Set(Some(chrono::Utc::now().naive_utc()));
+
     let position = active_position
         .update(&db)
         .await
@@ -242,6 +248,7 @@ pub async fn update_position(
         description: position.description,
         status: position.status,
         created_by: position.created_by,
+        updated_at: position.updated_at,
         created_at: position.created_at,
     };
 
