@@ -7,7 +7,8 @@ use utoipa_axum::routes;
 use validator::Validate;
 
 use crate::auth::extractor::AuthUser;
-use crate::entities::{positions};
+use crate::entities::{candidate_applications, candidates, positions};
+use crate::handlers::candidates::{CandidateResponse, to_response as candidate_to_response};
 
 /// Build the OpenAPI-aware router for the position endpoints.
 pub fn router() -> OpenApiRouter<DatabaseConnection> {
@@ -17,6 +18,7 @@ pub fn router() -> OpenApiRouter<DatabaseConnection> {
         .routes(routes!(create_position))
         .routes(routes!(update_position))
         .routes(routes!(delete_position))
+        .routes(routes!(get_position_candidates))
 }
 
 /// Possible statuses for a position.
@@ -88,7 +90,7 @@ pub struct UpdatePositionRequest {
     pub status: Option<PositionStatus>,
 }
 
-fn to_response(model: positions::Model) -> Result<PositionResponse, (StatusCode, &'static str)> {
+pub fn to_response(model: positions::Model) -> Result<PositionResponse, (StatusCode, &'static str)> {
     Ok(PositionResponse {
         id: model.id,
         title: model.title,
@@ -320,4 +322,60 @@ pub async fn delete_position(
         })?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    get,
+    path = "/get/{id}/candidates",
+    tag = "positions",
+    security(("bearer_auth" = [])),
+    params(("id" = i32, Path, description = "Position id")),
+    responses(
+        (status = 200, description = "List candidates who applied to a position", body = [CandidateResponse]),
+        (status = 401, description = "Unauthorized"),
+        (status = 404, description = "Position not found")
+    )
+)]
+#[axum::debug_handler]
+pub async fn get_position_candidates(
+    State(db): State<DatabaseConnection>,
+    _user: AuthUser,
+    Path(id): Path<i32>,
+) -> Result<Json<Vec<CandidateResponse>>, (StatusCode, &'static str)> {
+
+    positions::Entity::find_by_id(id)
+        .filter(positions::Column::DeletedAt.is_null())
+        .one(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?
+        .ok_or((StatusCode::NOT_FOUND, "Position not found"))?;
+
+    let applications = candidate_applications::Entity::find()
+        .filter(candidate_applications::Column::PositionId.eq(id))
+        .filter(candidate_applications::Column::DeletedAt.is_null())
+        .all(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?;
+
+    let candidate_ids: Vec<i32> = applications.iter().map(|a| a.candidate_id).collect();
+
+    let candidates = candidates::Entity::find()
+        .filter(candidates::Column::Id.is_in(candidate_ids))
+        .filter(candidates::Column::DeletedAt.is_null())
+        .all(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?;
+
+    let response = candidates.into_iter().map(candidate_to_response).collect();
+
+    Ok(Json(response))
 }
