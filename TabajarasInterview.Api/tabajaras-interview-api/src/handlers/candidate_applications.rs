@@ -20,12 +20,60 @@ pub fn router() -> OpenApiRouter<DatabaseConnection> {
         .routes(routes!(delete_candidate_application))
 }
 
+/// Possible statuses for a candidate application.
+///
+/// The string value is what gets stored in the
+/// `candidate_applications.status` column.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum CandidateApplicationStatus {
+    Applied,
+    Screening,
+    Interviewing,
+    OfferExtended,
+    Hired,
+    Rejected,
+    Withdrawn,
+}
+
+impl CandidateApplicationStatus {
+    /// Returns the canonical string stored in the database.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            CandidateApplicationStatus::Applied => "Applied",
+            CandidateApplicationStatus::Screening => "Screening",
+            CandidateApplicationStatus::Interviewing => "Interviewing",
+            CandidateApplicationStatus::OfferExtended => "OfferExtended",
+            CandidateApplicationStatus::Hired => "Hired",
+            CandidateApplicationStatus::Rejected => "Rejected",
+            CandidateApplicationStatus::Withdrawn => "Withdrawn",
+        }
+    }
+}
+
+impl std::str::FromStr for CandidateApplicationStatus {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "Applied" => Ok(CandidateApplicationStatus::Applied),
+            "Screening" => Ok(CandidateApplicationStatus::Screening),
+            "Interviewing" => Ok(CandidateApplicationStatus::Interviewing),
+            "OfferExtended" => Ok(CandidateApplicationStatus::OfferExtended),
+            "Hired" => Ok(CandidateApplicationStatus::Hired),
+            "Rejected" => Ok(CandidateApplicationStatus::Rejected),
+            "Withdrawn" => Ok(CandidateApplicationStatus::Withdrawn),
+            other => Err(other.to_string()),
+        }
+    }
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct CandidateApplicationResponse {
     pub id: i32,
     pub candidate_id: i32,
     pub position_id: i32,
-    pub status: String,
+    pub status: CandidateApplicationStatus,
     pub started_at: sea_orm::prelude::DateTime,
     pub finished_at: Option<sea_orm::prelude::DateTime>,
     pub final_score: Option<String>,
@@ -38,8 +86,7 @@ pub struct CandidateApplicationResponse {
 pub struct CreateCandidateApplicationRequest {
     pub candidate_id: i32,
     pub position_id: i32,
-    #[validate(length(min = 1, message = "status must not be empty"))]
-    pub status: String,
+    pub status: CandidateApplicationStatus,
     pub started_at: Option<sea_orm::prelude::DateTime>,
     pub finished_at: Option<sea_orm::prelude::DateTime>,
     pub final_score: Option<String>,
@@ -48,8 +95,7 @@ pub struct CreateCandidateApplicationRequest {
 
 #[derive(Deserialize, Validate, ToSchema)]
 pub struct UpdateCandidateApplicationRequest {
-    #[validate(length(min = 1, message = "status must not be empty"))]
-    pub status: Option<String>,
+    pub status: Option<CandidateApplicationStatus>,
     pub started_at: Option<sea_orm::prelude::DateTime>,
     pub finished_at: Option<sea_orm::prelude::DateTime>,
     pub final_score: Option<String>,
@@ -62,19 +108,20 @@ fn parse_score(value: &str) -> Result<Decimal, (StatusCode, String)> {
         .map_err(|_| (StatusCode::BAD_REQUEST, "final_score must be a valid decimal".to_string()))
 }
 
-fn to_response(model: candidate_applications::Model) -> CandidateApplicationResponse {
-    CandidateApplicationResponse {
+fn to_response(model: candidate_applications::Model) -> Result<CandidateApplicationResponse, (StatusCode, &'static str)> {
+    Ok(CandidateApplicationResponse {
         id: model.id,
         candidate_id: model.candidate_id,
         position_id: model.position_id,
-        status: model.status,
+        status: model.status.parse::<CandidateApplicationStatus>()
+            .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Unknown candidate application status"))?,
         started_at: model.started_at,
         finished_at: model.finished_at,
         final_score: model.final_score.map(|d| d.to_string()),
         final_comments: model.final_comments,
         created_at: model.created_at,
         updated_at: model.updated_at,
-    }
+    })
 }
 
 #[utoipa::path(
@@ -102,7 +149,10 @@ pub async fn get_candidate_applications(
             (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
         })?;
 
-    let response = applications.into_iter().map(to_response).collect();
+    let response = applications
+        .into_iter()
+        .map(to_response)
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(Json(response))
 }
@@ -159,7 +209,7 @@ pub async fn create_candidate_application(
     let new_application = candidate_applications::ActiveModel {
         candidate_id: Set(payload.candidate_id),
         position_id: Set(payload.position_id),
-        status: Set(payload.status),
+        status: Set(payload.status.as_str().to_string()),
         started_at: Set(payload.started_at.unwrap_or_else(|| chrono::Utc::now().naive_utc())),
         finished_at: Set(payload.finished_at),
         final_score: Set(final_score),
@@ -176,7 +226,9 @@ pub async fn create_candidate_application(
             (StatusCode::INTERNAL_SERVER_ERROR, "DB error".to_string())
         })?;
 
-    Ok((StatusCode::CREATED, Json(to_response(application))))
+    let response = to_response(application).map_err(|(s, m)| (s, m.to_string()))?;
+
+    Ok((StatusCode::CREATED, Json(response)))
 }
 
 #[utoipa::path(
@@ -208,7 +260,7 @@ pub async fn get_candidate_application(
         })?
         .ok_or((StatusCode::NOT_FOUND, "Candidate application not found"))?;
 
-    Ok(Json(to_response(application)))
+    Ok(Json(to_response(application)?))
 }
 
 #[utoipa::path(
@@ -250,7 +302,7 @@ pub async fn update_candidate_application(
     let mut active_application: candidate_applications::ActiveModel = application.into();
 
     if let Some(status) = payload.status {
-        active_application.status = Set(status);
+        active_application.status = Set(status.as_str().to_string());
     }
 
     if let Some(started_at) = payload.started_at {
@@ -279,7 +331,9 @@ pub async fn update_candidate_application(
             (StatusCode::INTERNAL_SERVER_ERROR, "DB error".to_string())
         })?;
 
-    Ok(Json(to_response(application)))
+    let response = to_response(application).map_err(|(s, m)| (s, m.to_string()))?;
+
+    Ok(Json(response))
 }
 
 #[utoipa::path(
