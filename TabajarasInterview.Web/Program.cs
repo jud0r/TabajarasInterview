@@ -1,3 +1,4 @@
+using MudBlazor.Services;
 using TabajarasInterview.Web;
 using TabajarasInterview.Web.Components;
 
@@ -9,6 +10,9 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Add MudBlazor services.
+builder.Services.AddMudServices();
 
 builder.Services.AddOutputCache();
 
