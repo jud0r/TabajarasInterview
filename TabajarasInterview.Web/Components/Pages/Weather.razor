@@ -2,41 +2,12 @@
 @attribute [StreamRendering(true)]
 @attribute [OutputCache(Duration = 5)]
 
-@inject WeatherApiClient WeatherApi
-
 <PageTitle>Weather</PageTitle>
 
 <MudText Typo="Typo.h3" GutterBottom="true">Weather</MudText>
 
 <MudText Class="mb-4">This component demonstrates showing data loaded from a backend API service.</MudText>
 
-@if (forecasts == null)
-{
-    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-}
-else
-{
-    <MudTable Items="forecasts" Hover="true" Striped="true" Bordered="true">
-        <HeaderContent>
-            <MudTh>Date</MudTh>
-            <MudTh aria-label="Temperature in Celsius">Temp. (C)</MudTh>
-            <MudTh aria-label="Temperature in Fahrenheit">Temp. (F)</MudTh>
-            <MudTh>Summary</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Date">@context.Date.ToShortDateString()</MudTd>
-            <MudTd DataLabel="Temp. (C)">@context.TemperatureC</MudTd>
-            <MudTd DataLabel="Temp. (F)">@context.TemperatureF</MudTd>
-            <MudTd DataLabel="Summary">@context.Summary</MudTd>
-        </RowTemplate>
-    </MudTable>
-}
-
 @code {
-    private WeatherForecast[]? forecasts;
-
-    protected override void OnInitialized()
-    {
-        forecasts = WeatherApi.GetWeather();
-    }
+    
 }
