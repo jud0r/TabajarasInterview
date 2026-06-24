@@ -7,14 +7,14 @@ namespace TabajarasInterview.Web.Services.Api
     {
         public async Task<ApiResult<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default)
         {
-            var client = factory.CreateClient();
+            var client = factory.CreateClient("rust-api");
             var response = await client.PostAsJsonAsync("api/auth/login", request, ct);
             return await parser.ParseAsync<LoginResponse>(response, ct);
         }
 
         public async Task<ApiResult<LoginResponse>> RefreshAsync(string refreshToken, CancellationToken ct = default)
         {
-            var client = factory.CreateClient();
+            var client = factory.CreateClient("rust-api");
             var response = await client.PostAsJsonAsync("api/auth/refresh", new { RefreshToken = refreshToken }, ct);
             return await parser.ParseAsync<LoginResponse>(response, ct);
         }

@@ -3,8 +3,10 @@ namespace TabajarasInterview.Web.DTOs;
 /// <summary>
 /// Response body for <c>POST /api/auth/login</c>.
 /// </summary>
-public sealed record LoginResponse(
-    string AccessToken,
-    long ExpiresIn,
-    string RefreshToken,
-    UserResponse User);
+public sealed class LoginResponse
+{
+    public string AccessToken { get; set; } = string.Empty;
+    public long ExpiresIn { get; set; }
+    public string RefreshToken { get; set; } = string.Empty;
+    public UserResponse User { get; set; } = new();
+}

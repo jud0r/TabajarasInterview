@@ -1,6 +1,9 @@
-﻿@inherits LayoutComponentBase
+﻿@using TabajarasInterview.Web.Components.Shared
+@using TabajarasInterview.Web.Themes
+@inherits LayoutComponentBase
+@inject IJSRuntime Js
 
-<MudThemeProvider @bind-IsDarkMode="_isDarkMode" />
+<MudThemeProvider Theme="@_currentTheme" @bind-IsDarkMode="IsDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -11,9 +14,9 @@
         <MudText Typo="Typo.h6">TabajarasInterview</MudText>
         <MudSpacer />
         <MudTooltip Text="Toggle light/dark theme">
-            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+            <MudIconButton Icon="@(IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                            Color="Color.Inherit"
-                           OnClick="@(() => _isDarkMode = !_isDarkMode)" />
+                           OnClick="@ToggleDarkMode" />
         </MudTooltip>
         <MudTooltip Text="About">
             <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
@@ -31,6 +34,7 @@
     <MudMainContent>
         <MudContainer MaxWidth="MaxWidth.Large" Class="my-6">
             @Body
+            <Footer></Footer>
         </MudContainer>
     </MudMainContent>
 </MudLayout>
@@ -43,9 +47,48 @@
 
 @code {
     private bool _drawerOpen = true;
-    private bool _isDarkMode;
+    private bool _isInteractive;
+    private readonly MudTheme _currentTheme = TabajarasTheme.Theme;
+    
+    public bool IsDarkMode { get; private set; }
 
-    private void DrawerToggle()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _isInteractive = true;
+
+            try
+            {
+                var saved = await Js.InvokeAsync<string?>("localStorage.getItem", "tabajaras_theme");
+
+                if (saved == "dark")
+                {
+                    IsDarkMode = true;
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+                // do nothing, just use the default theme
+            }
+        }
+    }
+
+    public async Task ToggleDarkMode()
+    {
+        IsDarkMode = !IsDarkMode;
+
+        if (_isInteractive)
+        {
+            await Js.InvokeVoidAsync("localStorage.setItem", "tabajaras_theme",
+                IsDarkMode ? "dark" : "light");
+        }
+
+        StateHasChanged();
+    }
+
+    public void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
     }

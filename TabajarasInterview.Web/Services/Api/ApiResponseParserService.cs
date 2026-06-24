@@ -1,9 +1,15 @@
-﻿using TabajarasInterview.Web.Models;
+﻿using System.Text.Json;
+using TabajarasInterview.Web.Models;
 
 namespace TabajarasInterview.Web.Services.Api
 {
     public class ApiResponseParserService
     {
+        private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        };
+
         public async Task<ApiResult<T>> ParseAsync<T>(HttpResponseMessage httpResponse, CancellationToken ct = default)
         {
             if (httpResponse.IsSuccessStatusCode)
@@ -13,7 +19,7 @@ namespace TabajarasInterview.Web.Services.Api
                     return ApiResult<T>.Ok(default!);
                 }
 
-                var data = await httpResponse.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+                var data = await httpResponse.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken: ct);
                 return ApiResult<T>.Ok(data!);
             }
 
@@ -32,7 +38,7 @@ namespace TabajarasInterview.Web.Services.Api
         {
             try
             {
-                var apiError = await httpResponse.Content.ReadFromJsonAsync<ApiError>(cancellationToken: ct);
+                var apiError = await httpResponse.Content.ReadFromJsonAsync<ApiError>(JsonOptions, cancellationToken: ct);
 
                 if (apiError?.Errors is not null)
                     return new T { Success = false, ValidationErrors = apiError.Errors };
