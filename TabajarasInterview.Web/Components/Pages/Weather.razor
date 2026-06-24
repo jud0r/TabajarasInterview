@@ -1,49 +1,128 @@
 ﻿@page "/weather"
+@using TabajarasInterview.Web.Components.Layout
+@using TabajarasInterview.Web.DTOs
+@using TabajarasInterview.Web.Services.Api
+@using TabajarasInterview.Web.Services.Auth
 @attribute [StreamRendering(true)]
-@attribute [OutputCache(Duration = 5)]
+@inject IAuthApiService AuthApi
+@inject AuthService Auth
 
-@inject WeatherApiClient WeatherApi
+<PageTitle>Test Login</PageTitle>
 
-<PageTitle>Weather</PageTitle>
+<div class="auth-section @(Layout?.IsDarkMode == true ? "auth-dark" : "")">
+    <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="min-height: calc(100vh - 65px);">
+        <MudPaper Elevation="4" Class="auth-card pa-8" Style="border-radius: 24px; width: 100%; max-width: 460px;">
 
-<h1>Weather</h1>
+            <div class="text-center mb-6">
+                <MudText Typo="Typo.h5" Style="font-weight: 800;">Welcome back</MudText>
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);" Class="mt-1">
+                    Sign in to continue managing your savings
+                </MudText>
+            </div>
 
-<p>This component demonstrates showing data loaded from a backend API service.</p>
+            <EditForm Model="_model" OnValidSubmit="HandleLogin" FormName="LoginForm">
+                <DataAnnotationsValidator />
 
-@if (forecasts == null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th aria-label="Temperature in Celsius">Temp. (C)</th>
-                <th aria-label="Temperature in Fahrenheit">Temp. (F)</th>
-                <th>Summary</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var forecast in forecasts)
-            {
-                <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+                <MudStack Spacing="3">
+                    <MudTextField @bind-Value="_model.Email"
+                                  Label="Email"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Email"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Email"
+                                  Style="border-radius: 12px;"
+                                  For="@(() => _model.Email)" />
+
+                    <MudTextField @bind-Value="_model.Password"
+                                  Label="Password"
+                                  Variant="Variant.Outlined"
+                                  InputType="@(_showPassword? InputType.Text: InputType.Password)"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Lock"
+                                  Style="border-radius: 12px;"
+                                  For="@(() => _model.Password)" />
+
+                    <MudCheckBox @bind-Value="_showPassword" Label="Show password" Color="Color.Primary"
+                                 Size="Size.Small" Dense="true" />
+
+                    <div class="d-flex justify-end">
+                        <MudLink Href="/forgot-password" Typo="Typo.body2" Style="font-weight: 600;">
+                            Forgot password?
+                        </MudLink>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true"
+                                  Style="border-radius: 12px;">
+                            @_errorMessage
+                        </MudAlert>
+                    }
+
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               Disabled="_loading"
+                               Style="border-radius: 12px; text-transform: none; font-weight: 600; padding: 12px;">
+                        @if (_loading)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        }
+                        Sign In
+                    </MudButton>
+                </MudStack>
+            </EditForm>
+
+            <MudDivider Class="my-6" />
+
+            <div class="text-center">
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                    Don't have an account?
+                    <MudLink Href="/register" Typo="Typo.body2" Style="font-weight: 600;">
+                        Sign up
+                    </MudLink>
+                </MudText>
+            </div>
+
+        </MudPaper>
+    </MudContainer>
+</div>
 
 @code {
-    private WeatherForecast[]? forecasts;
+    [CascadingParameter]
+    public MainLayout? Layout { get; set; }
 
-    protected override void OnInitialized()
+    private LoginRequest _model = new ();
+    private bool _loading;
+    private bool _showPassword;
+    private string? _errorMessage;
+
+    private async Task HandleLogin()
     {
-        forecasts = WeatherApi.GetWeather();
+        _errorMessage = null;
+        _loading = true;
+
+        try
+        {
+            var result = await AuthApi.LoginAsync(_model);
+
+            if (result is { Success: true, Data: not null })
+            {
+                await Auth.LoginAsync(result.Data);
+            }
+            else
+            {
+                _errorMessage = result.ErrorMessage ?? "Invalid email or password.";
+            }
+        }
+        catch
+        {
+            _errorMessage = "An unexpected error occurred. Please try again.";
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 }

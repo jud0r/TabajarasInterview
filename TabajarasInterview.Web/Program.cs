@@ -1,5 +1,8 @@
+using Microsoft.AspNetCore.Components.Authorization;
+using MudBlazor.Services;
 using TabajarasInterview.Web;
-using TabajarasInterview.Web.Components;
+using TabajarasInterview.Web.Services.Api;
+using TabajarasInterview.Web.Services.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,14 +13,24 @@ builder.AddServiceDefaults();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Add MudBlazor services.
+builder.Services.AddMudServices();
+
 builder.Services.AddOutputCache();
 
-builder.Services.AddHttpClient<WeatherApiClient>(client =>
-    {
-        // This URL uses "https+http://" to indicate HTTPS is preferred over HTTP.
-        // Learn more about service discovery scheme resolution at https://aka.ms/dotnet/sdschemes.
-        client.BaseAddress = new("https+http://apiservice");
-    });
+builder.Services.AddHttpClient("rust-api", client =>
+{
+    client.BaseAddress = new("http://rust-api");
+});
+
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<ApiResponseParserService>();
+builder.Services.AddScoped<IAuthApiService, AuthApiService>();
+builder.Services.AddScoped<AuthorizedHttpClientFactory>();
+builder.Services.AddScoped<CookieService>();
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProviderService>();
 
 var app = builder.Build();
 

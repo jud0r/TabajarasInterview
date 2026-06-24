@@ -1,23 +1,95 @@
-﻿@inherits LayoutComponentBase
+﻿@using TabajarasInterview.Web.Components.Shared
+@using TabajarasInterview.Web.Themes
+@inherits LayoutComponentBase
+@inject IJSRuntime Js
 
-<div class="page">
-    <div class="sidebar">
+<MudThemeProvider Theme="@_currentTheme" @bind-IsDarkMode="IsDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@DrawerToggle" />
+        <MudText Typo="Typo.h6">TabajarasInterview</MudText>
+        <MudSpacer />
+        <MudTooltip Text="Toggle light/dark theme">
+            <MudIconButton Icon="@(IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                           Color="Color.Inherit"
+                           OnClick="@ToggleDarkMode" />
+        </MudTooltip>
+        <MudTooltip Text="About">
+            <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
+                           Color="Color.Inherit"
+                           Href="https://learn.microsoft.com/aspnet/core/"
+                           Target="_blank" />
+        </MudTooltip>
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6">TabajarasInterview</MudText>
+        </MudDrawerHeader>
         <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
+    </MudDrawer>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="my-6">
             @Body
-        </article>
-    </main>
-</div>
+            <Footer></Footer>
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
 
 <div id="blazor-error-ui">
     An unhandled error has occurred.
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _isInteractive;
+    private readonly MudTheme _currentTheme = TabajarasTheme.Theme;
+    
+    public bool IsDarkMode { get; private set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _isInteractive = true;
+
+            try
+            {
+                var saved = await Js.InvokeAsync<string?>("localStorage.getItem", "tabajaras_theme");
+
+                if (saved == "dark")
+                {
+                    IsDarkMode = true;
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+                // do nothing, just use the default theme
+            }
+        }
+    }
+
+    public async Task ToggleDarkMode()
+    {
+        IsDarkMode = !IsDarkMode;
+
+        if (_isInteractive)
+        {
+            await Js.InvokeVoidAsync("localStorage.setItem", "tabajaras_theme",
+                IsDarkMode ? "dark" : "light");
+        }
+
+        StateHasChanged();
+    }
+
+    public void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}
