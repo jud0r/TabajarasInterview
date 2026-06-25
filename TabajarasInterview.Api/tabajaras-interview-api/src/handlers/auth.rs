@@ -14,6 +14,7 @@ pub fn router() -> OpenApiRouter<DatabaseConnection> {
     OpenApiRouter::new()
         .routes(routes!(login))
         .routes(routes!(refresh))
+        .routes(routes!(logout))
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -25,7 +26,7 @@ pub struct LoginRequest {
 #[derive(Serialize, ToSchema)]
 pub struct LoginResponse {
     pub access_token: String,
-    pub expires_in: i64,
+    pub expires_in: i32,
     pub refresh_token: String,
     pub user: UserResponse
 }
@@ -38,7 +39,12 @@ pub struct RefreshRequest {
 #[derive(Serialize, ToSchema)]
 pub struct RefreshResponse {
     pub access_token: String,
-    pub expires_in: i64,
+    pub expires_in: i32,
+    pub refresh_token: String,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct LogoutRequest {
     pub refresh_token: String,
 }
 
@@ -47,11 +53,9 @@ async fn store_refresh_token(
     db: &DatabaseConnection,
     user_id: i32,
     token: &str,
-    expires_at: i64,
+    expires_in: i32,
 ) -> Result<(), (StatusCode, &'static str)> {
-    let expires_at = chrono::DateTime::from_timestamp(expires_at, 0)
-        .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "Invalid token expiration"))?
-        .naive_utc();
+    let expires_at = (chrono::Utc::now() + chrono::Duration::seconds(expires_in.into())).naive_utc();
 
     let record = refresh_tokens::ActiveModel {
         user_id: Set(user_id),
@@ -185,4 +189,43 @@ pub async fn refresh(
     };
 
     Ok(Json(response))
+}
+
+#[utoipa::path(
+    post,
+    path = "/logout",
+    tag = "auth",
+    request_body = LogoutRequest,
+    responses(
+        (status = 204, description = "Logout succeeded"),
+        (status = 401, description = "Invalid refresh token")
+    )
+)]
+#[axum::debug_handler]
+pub async fn logout(
+    State(db): State<DatabaseConnection>,
+    Json(payload): Json<LogoutRequest>,
+) -> Result<StatusCode, (StatusCode, &'static str)> {
+
+    let token_hash = hash_token(&payload.refresh_token);
+
+    let stored = refresh_tokens::Entity::find()
+        .filter(refresh_tokens::Column::TokenHash.eq(&token_hash))
+        .filter(refresh_tokens::Column::RevokedAt.is_null())
+        .one(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?
+        .ok_or((StatusCode::UNAUTHORIZED, "Invalid refresh token"))?;
+
+    let mut active: refresh_tokens::ActiveModel = stored.into();
+    active.revoked_at = Set(Some(chrono::Utc::now().naive_utc()));
+    active.update(&db).await.map_err(|e| {
+        println!("DB ERROR: {}", e);
+        (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+    })?;
+
+    Ok(StatusCode::NO_CONTENT)
 }

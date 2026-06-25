@@ -1,8 +1,4 @@
 ﻿@page "/weather"
-@using TabajarasInterview.Web.Components.Layout
-@using TabajarasInterview.Web.DTOs
-@using TabajarasInterview.Web.Services.Api
-@using TabajarasInterview.Web.Services.Auth
 @attribute [StreamRendering(true)]
 @inject IAuthApiService AuthApi
 @inject AuthService Auth
@@ -16,7 +12,7 @@
             <div class="text-center mb-6">
                 <MudText Typo="Typo.h5" Style="font-weight: 800;">Welcome back</MudText>
                 <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);" Class="mt-1">
-                    Sign in to continue managing your savings
+                    Sign in to access your dashboard and manage your account.
                 </MudText>
             </div>
 
