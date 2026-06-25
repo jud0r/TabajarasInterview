@@ -1,0 +1,15 @@
+@inject NavigationManager Navigation
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Preserve where the user was headed so we can return after a successful sign-in.
+        var returnUrl = Navigation.ToBaseRelativePath(Navigation.Uri);
+
+        var target = string.IsNullOrEmpty(returnUrl)
+            ? "login"
+            : $"login?returnUrl={Uri.EscapeDataString(returnUrl)}";
+
+        Navigation.NavigateTo(target);
+    }
+}

@@ -6,16 +6,18 @@ namespace TabajarasInterview.Web.Services.Auth
 {
 
     public class CustomAuthenticationStateProviderService(CookieService cookies,
-        IHttpContextAccessor httpContextAccessor) : AuthenticationStateProvider
+        IHttpContextAccessor httpContextAccessor,
+        JwtTokenValidator validator) : AuthenticationStateProvider
     {
         private readonly ClaimsPrincipal _anonymous = new(new ClaimsIdentity());
         private const string TokenCookie = "tabajaras_access_token";
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            string? token = null;
+            string? token;
 
-            // During prerendering, read from HttpContext; during interactive, use JS
+            // During prerendering the cookie is available on HttpContext; during the
+            // interactive circuit there is no HttpContext, so fall back to JS interop.
             var httpContext = httpContextAccessor.HttpContext;
             if (httpContext is not null)
             {
@@ -27,27 +29,26 @@ namespace TabajarasInterview.Web.Services.Auth
             {
                 token = await cookies.GetAsync(TokenCookie);
             }
-            if (string.IsNullOrWhiteSpace(token))
-                return new AuthenticationState(_anonymous);
 
-            var identity = new ClaimsIdentity(new[]
-            {
-                new Claim("access_token", token)
-            }, "jwt");
+            // Validate the token (signature, lifetime, token_type) instead of trusting the
+            // mere presence of a cookie, so the UI state matches HttpContext.User on the server.
+            var principal = await validator.ValidateAsync(token);
 
-            var user = new ClaimsPrincipal(identity);
-
-            return new AuthenticationState(user);
+            return new AuthenticationState(principal ?? _anonymous);
         }
 
         public Task MarkUserAsAuthenticated(UserResponse user)
         {
+            // Mirror the claim set produced from a validated token so the auth state is
+            // identical whether it came from MarkUserAsAuthenticated or a page reload.
             var identity = new ClaimsIdentity(new[]
             {
-                new Claim(ClaimTypes.Name, user.FullName),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Email),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim("user_id", user.Id.ToString())
-            }, "jwt");
+                new Claim("token_type", JwtTokenValidator.AccessTokenType),
+                new Claim("full_name", user.FullName)
+            }, JwtTokenValidator.AuthenticationType, ClaimTypes.Name, ClaimTypes.Role);
 
             var principal = new ClaimsPrincipal(identity);
 
