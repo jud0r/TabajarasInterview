@@ -30,6 +30,19 @@ if (string.IsNullOrWhiteSpace(jwtSecret))
         "It must never be committed to source control.");
 }
 
+// HS256 signing keys must be at least 128 bits (16 bytes). Microsoft.IdentityModel rejects
+// shorter keys with IDX10653 while building the signature provider, which surfaces as a
+// misleading IDX10517 "signature validation failed" (kid missing) and silently rejects every
+// token even though the secret is otherwise correct. Fail fast with an actionable message.
+var jwtKeyBytes = Encoding.UTF8.GetBytes(jwtSecret);
+if (jwtKeyBytes.Length < 16)
+{
+    throw new InvalidOperationException(
+        $"Jwt:Secret is too short for HS256: {jwtKeyBytes.Length} bytes ({jwtKeyBytes.Length * 8} bits). " +
+        "Microsoft.IdentityModel requires at least 16 bytes (128 bits); RFC 7518 recommends 32 bytes " +
+        "(256 bits). Use the same value as the Rust API's SECRET.");
+}
+
 builder.Services.AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -41,9 +54,13 @@ builder.Services.AddAuthentication(options =>
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtSecret)),
+            IssuerSigningKey = new SymmetricSecurityKey(jwtKeyBytes),
 
+            // The Rust API issues tokens without 'iss'/'aud' claims. Issuer and audience
+            // validation default to true, which would reject every token, so disable them.
+            // Trust is established by the symmetric signing key and the token lifetime.
+            ValidateIssuer = false,
+            ValidateAudience = false,
 
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero,
@@ -56,11 +73,24 @@ builder.Services.AddAuthentication(options =>
         {
             OnMessageReceived = context =>
             {
+                // HttpRequest.Cookies already URL-decodes the stored value, so the JWT is used
+                // as-is. Decoding again here would mangle the base64url signature segment and
+                // make every token fail signature validation (IDX10517).
                 var token = context.Request.Cookies["tabajaras_access_token"];
                 if (!string.IsNullOrEmpty(token))
                 {
-                    context.Token = Uri.UnescapeDataString(token);
+                    context.Token = token;
                 }
+                return Task.CompletedTask;
+            },
+            // Surface the exact reason a token was rejected (e.g. signature/secret mismatch,
+            // expired lifetime) so authentication problems are visible in the logs.
+            OnAuthenticationFailed = context =>
+            {
+                var logger = context.HttpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("JwtBearerAuth");
+                logger.LogWarning(context.Exception, "JWT authentication failed: {Reason}", context.Exception.Message);
                 return Task.CompletedTask;
             }
         };

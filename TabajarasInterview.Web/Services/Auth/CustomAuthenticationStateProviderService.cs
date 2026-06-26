@@ -22,8 +22,8 @@ namespace TabajarasInterview.Web.Services.Auth
                 if (httpContext.User.Identity?.IsAuthenticated != true)
                     return new AuthenticationState(_anonymous);
 
-                var cookieToken = httpContext.Request.Cookies[TokenCookie];
-                cookieToken = cookieToken is not null ? Uri.UnescapeDataString(cookieToken) : string.Empty;
+                // HttpRequest.Cookies already URL-decodes the value; use the JWT as-is.
+                var cookieToken = httpContext.Request.Cookies[TokenCookie] ?? string.Empty;
 
                 return new AuthenticationState(BuildPrincipal(httpContext.User.Claims, cookieToken));
             }
