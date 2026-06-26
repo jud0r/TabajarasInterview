@@ -1,47 +1,55 @@
 @page "/login"
-@attribute [AllowAnonymous]
 @inject IAuthApiService AuthApi
 @inject AuthService AuthService
 @inject NavigationManager Navigation
 
-<PageTitle>Sign in</PageTitle>
+<AuthorizeView>
+    <NotAuthorized Context="notAuthorized">
+        <PageTitle>Sign in</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-16">
-    <MudPaper Class="pa-8" Elevation="4">
-        <MudText Typo="Typo.h5" GutterBottom="true">Sign in</MudText>
+        <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-16">
+            <MudPaper Class="pa-8" Elevation="4">
+                <MudText Typo="Typo.h5" GutterBottom="true">Sign in</MudText>
 
-        <EditForm Model="_model" OnValidSubmit="HandleLoginAsync">
-            <DataAnnotationsValidator />
+                <EditForm Model="_model" OnValidSubmit="HandleLoginAsync">
+                    <DataAnnotationsValidator />
 
-            <MudTextField @bind-Value="_model.Email"
-                          For="@(() => _model.Email)"
-                          Label="Email"
-                          InputType="InputType.Email"
-                          Variant="Variant.Outlined"
-                          Class="mb-4" />
+                    <MudTextField @bind-Value="_model.Email"
+                                  For="@(() => _model.Email)"
+                                  Label="Email"
+                                  InputType="InputType.Email"
+                                  Variant="Variant.Outlined"
+                                  Class="mb-4" />
 
-            <MudTextField @bind-Value="_model.Password"
-                          For="@(() => _model.Password)"
-                          Label="Password"
-                          InputType="InputType.Password"
-                          Variant="Variant.Outlined"
-                          Class="mb-4" />
+                    <MudTextField @bind-Value="_model.Password"
+                                  For="@(() => _model.Password)"
+                                  Label="Password"
+                                  InputType="InputType.Password"
+                                  Variant="Variant.Outlined"
+                                  Class="mb-4" />
 
-            @if (!string.IsNullOrEmpty(_error))
-            {
-                <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
-            }
+                    @if (!string.IsNullOrEmpty(_error))
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+                    }
 
-            <MudButton ButtonType="ButtonType.Submit"
-                       Color="Color.Primary"
-                       Variant="Variant.Filled"
-                       FullWidth="true"
-                       Disabled="_busy">
-                @(_busy ? "Signing in..." : "Sign in")
-            </MudButton>
-        </EditForm>
-    </MudPaper>
-</MudContainer>
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               FullWidth="true"
+                               Disabled="_busy">
+                        @(_busy ? "Signing in..." : "Sign in")
+                    </MudButton>
+                </EditForm>
+            </MudPaper>
+        </MudContainer>
+    </NotAuthorized>
+    <Authorized>
+        @{
+            Navigation.NavigateTo("/");
+        };
+    </Authorized>
+</AuthorizeView>
 
 @code {
     private readonly LoginRequest _model = new();
