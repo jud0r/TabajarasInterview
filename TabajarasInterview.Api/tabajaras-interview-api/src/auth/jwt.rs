@@ -27,32 +27,32 @@ fn secret() -> String {
     std::env::var("SECRET").expect("SECRET not set")
 }
 
-fn token_expiration() -> i64 {
+fn token_expiration() -> i32 {
     std::env::var("TOKEN_EXPIRATION_IN_MINUTES")
         .unwrap_or_else(|_| "60".to_string())
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap_or(60)
 }
 
-fn refresh_token_expiration() -> i64 {
+fn refresh_token_expiration() -> i32 {
     std::env::var("REFRESH_TOKEN_EXPIRATION_IN_DAYS")
         .unwrap_or_else(|_| "30".to_string())
-        .parse::<i64>()
+        .parse::<i32>()
         .unwrap_or(30)
 }
 
-pub fn generate_token(email: &str, id: i32) -> (String, i64) {
+pub fn generate_token(email: &str, id: i32) -> (String, i32) {
     let ttl_seconds = token_expiration() * 60;
     generate(email, id, TokenType::Access, ttl_seconds)
 }
 
-pub fn generate_refresh_token(email: &str, id: i32) -> (String, i64) {
+pub fn generate_refresh_token(email: &str, id: i32) -> (String, i32) {
     let ttl_seconds = refresh_token_expiration() * 24 * 60 * 60;
     generate(email, id, TokenType::Refresh, ttl_seconds)
 }
 
-fn generate(email: &str, id: i32, token_type: TokenType, ttl_seconds: i64) -> (String, i64) {
-    let exp = chrono::Utc::now().timestamp() + ttl_seconds;
+fn generate(email: &str, id: i32, token_type: TokenType, ttl_seconds: i32) -> (String, i32) {
+    let exp = chrono::Utc::now().timestamp() + ttl_seconds as i64;
 
     let claims = Claims {
         sub: email.to_string(),
@@ -68,7 +68,7 @@ fn generate(email: &str, id: i32, token_type: TokenType, ttl_seconds: i64) -> (S
     )
     .unwrap();
 
-    (token, exp)
+    (token, ttl_seconds)
 }
 
 pub fn decode_token(token: &str) -> Option<Claims> {

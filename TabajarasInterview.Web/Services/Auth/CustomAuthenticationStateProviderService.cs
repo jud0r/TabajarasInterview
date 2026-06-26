@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.IdentityModel.JsonWebTokens;
 using System.Security.Claims;
 using TabajarasInterview.Web.DTOs;
 
@@ -13,31 +14,27 @@ namespace TabajarasInterview.Web.Services.Auth
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            string? token = null;
-
-            // During prerendering, read from HttpContext; during interactive, use JS
+            // During prerendering/SSR the JWT bearer handler has already validated the
+            // access-token cookie and populated HttpContext.User, so reuse that identity.
             var httpContext = httpContextAccessor.HttpContext;
             if (httpContext is not null)
             {
-                token = httpContext.Request.Cookies[TokenCookie];
-                if (token is not null)
-                    token = Uri.UnescapeDataString(token);
+                if (httpContext.User.Identity?.IsAuthenticated != true)
+                    return new AuthenticationState(_anonymous);
+
+                // HttpRequest.Cookies already URL-decodes the value; use the JWT as-is.
+                var cookieToken = httpContext.Request.Cookies[TokenCookie] ?? string.Empty;
+
+                return new AuthenticationState(BuildPrincipal(httpContext.User.Claims, cookieToken));
             }
-            else
-            {
-                token = await cookies.GetAsync(TokenCookie);
-            }
-            if (string.IsNullOrWhiteSpace(token))
+
+            // During interactive rendering there is no HttpContext; read the cookie via JS
+            // and rebuild the identity from the JWT's claims.
+            var token = await cookies.GetAsync(TokenCookie);
+            if (string.IsNullOrWhiteSpace(token) || !TryReadClaims(token, out var claims))
                 return new AuthenticationState(_anonymous);
 
-            var identity = new ClaimsIdentity(new[]
-            {
-                new Claim("access_token", token)
-            }, "jwt");
-
-            var user = new ClaimsPrincipal(identity);
-
-            return new AuthenticationState(user);
+            return new AuthenticationState(BuildPrincipal(claims, token));
         }
 
         public Task MarkUserAsAuthenticated(UserResponse user)
@@ -60,6 +57,44 @@ namespace TabajarasInterview.Web.Services.Auth
         {
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_anonymous)));
             return Task.CompletedTask;
+        }
+
+        // Maps the JWT claims onto the same claim types produced by MarkUserAsAuthenticated so
+        // an authenticated user looks identical whether they just logged in or reloaded the page.
+        private static ClaimsPrincipal BuildPrincipal(IEnumerable<Claim> source, string accessToken)
+        {
+            var claims = new List<Claim>();
+
+            if (!string.IsNullOrEmpty(accessToken))
+                claims.Add(new Claim("access_token", accessToken));
+
+            var name = source.FirstOrDefault(c => c.Type == "name")?.Value;
+            if (!string.IsNullOrEmpty(name))
+                claims.Add(new Claim(ClaimTypes.Name, name));
+
+            var email = source.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Email)?.Value;
+            if (!string.IsNullOrEmpty(email))
+                claims.Add(new Claim(ClaimTypes.Email, email));
+
+            var userId = source.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+                claims.Add(new Claim("user_id", userId));
+
+            return new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt"));
+        }
+
+        private static bool TryReadClaims(string token, out IEnumerable<Claim> claims)
+        {
+            try
+            {
+                claims = new JsonWebToken(token).Claims;
+                return true;
+            }
+            catch
+            {
+                claims = Array.Empty<Claim>();
+                return false;
+            }
         }
     }
 }

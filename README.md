@@ -116,6 +116,28 @@ builder.Build().Run();
 >
 > The Rust API is responsible for its own MySQL connection (connection string / host configured on the Rust side), since the database is hosted externally and not managed by Aspire.
 
+### JWT signing secret
+
+The Blazor frontend validates the rust-api access token (HS256) on the server, so it needs the **same** `SECRET` the Rust API signs with. The AppHost exposes this as the `jwt-secret` parameter and injects it into both resources (`SECRET` for rust-api, `Jwt__Secret` for the web frontend):
+
+```csharp
+var jwtSecret = builder.AddParameter("jwt-secret", secret: true);
+```
+
+Set its value once (it is never committed) before running the AppHost:
+
+```bash
+dotnet user-secrets --project TabajarasInterview.AppHost set "Parameters:jwt-secret" "<the-rust-api-secret>"
+```
+
+To run **TabajarasInterview.Web** standalone (outside the AppHost), provide the key directly instead, e.g. via user-secrets:
+
+```bash
+dotnet user-secrets --project TabajarasInterview.Web set "Jwt:Secret" "<the-rust-api-secret>"
+```
+
+> The frontend fails fast at startup if `Jwt:Secret` is empty, so authorization is never enforced without a valid signing key.
+
 ### Launch Profiles
 
 The AppHost defines `http` and `https` launch profiles in `Properties/launchSettings.json`, each exposing the application URL and the Aspire Dashboard OTLP/MCP/resource-service endpoints.

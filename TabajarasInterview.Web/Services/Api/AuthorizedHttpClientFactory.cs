@@ -17,7 +17,7 @@ namespace TabajarasInterview.Web.Services.Api
                 {
                     var authApi = serviceProvider.GetRequiredService<IAuthApiService>();
                     var result = await authApi.RefreshAsync(refreshToken);
-                    if (result.Success && result.Data is not null)
+                    if (result is { Success: true, Data: not null })
                     {
                         await authService.LoginAsync(result.Data);
                         token = result.Data.AccessToken;

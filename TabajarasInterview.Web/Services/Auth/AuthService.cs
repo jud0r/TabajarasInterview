@@ -9,14 +9,15 @@ namespace TabajarasInterview.Web.Services.Auth
     {
         private const string TokenKey = "tabajaras_access_token";
         private const string RefreshTokenKey = "tabajaras_refresh_token";
+        private const int RefreshTokenExpirationInSeconds = 60 * 60 * 24 * 30; // 30 days
 
         public async Task<bool> LoginAsync(LoginResponse login)
         {
             if (string.IsNullOrWhiteSpace(login?.AccessToken))
                 return false;
 
-            await cookies.SetAsync(TokenKey, login.AccessToken, (int)login.ExpiresIn);
-            await cookies.SetAsync(RefreshTokenKey, login.RefreshToken, 60 * 60 * 24 * 30); // 30 days
+            await cookies.SetAsync(TokenKey, login.AccessToken, login.ExpiresIn);
+            await cookies.SetAsync(RefreshTokenKey, login.RefreshToken, RefreshTokenExpirationInSeconds);
 
             http.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", login.AccessToken);
