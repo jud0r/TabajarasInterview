@@ -1,0 +1,89 @@
+/* ============================= LOGIN PAGE ============================= */
+.login-page {
+    min-height: calc(100vh - 73px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(32px, 6vw, 72px) 0;
+}
+
+.login-container {
+    position: relative;
+    z-index: 2;
+}
+
+/* Single centered card */
+.login-card {
+    padding: clamp(28px, 5vw, 44px);
+    border-radius: 24px;
+    background: var(--mud-palette-surface);
+    border: 1px solid var(--mud-palette-divider);
+    box-shadow: 0 30px 60px -20px rgba(16, 24, 64, 0.35);
+}
+
+/* ----------------------------- Brand header ----------------------------- */
+.login-brand {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.login-brand .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--mud-palette-primary) 12%, transparent);
+    color: var(--mud-palette-text-primary);
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 18px;
+}
+
+.login-title {
+    font-weight: 800;
+    font-size: clamp(1.7rem, 3vw, 2.1rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+    color: var(--mud-palette-text-primary);
+}
+
+.gradient-text {
+    background: linear-gradient(120deg, var(--mud-palette-primary), var(--mud-palette-secondary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+.login-subtitle {
+    font-size: 1rem;
+    color: var(--mud-palette-text-secondary);
+    margin: 0;
+}
+
+/* ----------------------------- Larger fields ----------------------------- */
+.login-field ::deep .mud-input-control-input-container .mud-input.mud-input-outlined input {
+    font-size: 1.05rem;
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+.login-field ::deep label.mud-input-label {
+    font-size: 1.02rem;
+}
+
+/* ----------------------------- Footer ----------------------------- */
+.form-footer {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 0.92rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+.form-footer-link {
+    font-weight: 700;
+    margin-left: 4px;
+}
+
