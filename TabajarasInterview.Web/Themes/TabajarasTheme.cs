@@ -54,7 +54,7 @@ namespace TabajarasInterview.Web.Themes
             {
                 Default = new DefaultTypography
                 {
-                    FontFamily = ["Roboto", "Helvetica", "Arial", "sans-serif"]
+                    FontFamily = ["Ubuntu", "Helvetica", "Arial", "sans-serif"]
                 }
             }
         };

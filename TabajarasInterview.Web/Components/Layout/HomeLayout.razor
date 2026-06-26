@@ -1,0 +1,86 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime Js
+
+<MudThemeProvider Theme="@_currentTheme" IsDarkMode="@IsDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<CascadingValue Value="this">
+    <MudLayout>
+        <!-- Top Navbar -->
+        <MudPaper Elevation="0" Class="landing-navbar">
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+                <div class="navbar-inner">
+                    <div class="d-flex align-center">
+                        <MudLink Href="/" Underline="Underline.None">
+                            <MudImage Src="svg/tabajaras-logo.svg" Alt="Tabajaras" Height="36" ObjectFit="ObjectFit.Contain" Style="cursor: pointer;" />
+                        </MudLink>
+                    </div>
+
+                    <div class="d-flex align-center gap-2">
+                        <MudIconButton Icon="@(IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                                       Color="Color.Default"
+                                       OnClick="ToggleDarkMode" />
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/register"
+                                   Style="border-radius: 24px; text-transform: none; font-weight: 600;">
+                            Get Started
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/login"
+                                   Style="border-radius: 24px; text-transform: none; font-weight: 600;">
+                            Sign In
+                        </MudButton>
+                    </div>
+                </div>
+            </MudContainer>
+        </MudPaper>
+
+        <MudMainContent Style="padding: 0;">
+            @Body
+            <Footer></Footer>
+        </MudMainContent>
+    </MudLayout>
+</CascadingValue>
+
+@code {
+    private MudTheme _currentTheme = TabajarasTheme.Theme;
+    private bool _isInteractive;
+
+    public bool IsDarkMode { get; private set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _isInteractive = true;
+
+            try
+            {
+                var saved = await Js.InvokeAsync<string?>("localStorage.getItem", "tabajaras_theme");
+
+                if (saved == "dark")
+                {
+                    IsDarkMode = true;
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+                // do nothing, just use the default theme
+            }
+        }
+    }
+
+    public async Task ToggleDarkMode()
+    {
+        IsDarkMode = !IsDarkMode;
+
+        if (_isInteractive)
+        {
+            await Js.InvokeVoidAsync("localStorage.setItem", "tabajaras_theme",
+                IsDarkMode ? "dark" : "light");
+        }
+
+        StateHasChanged();
+    }
+}
