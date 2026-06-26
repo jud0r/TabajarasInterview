@@ -1,0 +1,36 @@
+.landing-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--mud-palette-surface);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--mud-palette-divider);
+}
+
+.navbar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+}
+
+.brand-name {
+    font-weight: 700;
+    color: var(--mud-palette-text-primary);
+}
+
+.nav-links {
+    gap: 32px;
+    align-items: center;
+}
+
+.nav-link-item {
+    color: var(--mud-palette-text-secondary) !important;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.nav-link-item:hover {
+    color: var(--mud-palette-text-primary) !important;
+}

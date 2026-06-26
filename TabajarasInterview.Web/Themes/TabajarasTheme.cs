@@ -26,7 +26,7 @@ namespace TabajarasInterview.Web.Themes
             },
             PaletteDark = new PaletteDark
             {
-                Primary = new MudColor("#6B77FF"),
+                Primary = new MudColor("#0058AB"),
                 Secondary = new MudColor("#34D399"),
                 Tertiary = new MudColor("#FE8D00"),
                 Background = new MudColor("#161927"),
@@ -38,7 +38,7 @@ namespace TabajarasInterview.Web.Themes
                 DrawerText = new MudColor("#F1F1F6"),
                 DrawerIcon = new MudColor("#A1A8B8"),
                 Success = new MudColor("#34D399"),
-                Info = new MudColor("#6B77FF"),
+                Info = new MudColor("#0058AB"),
                 Warning = new MudColor("#FE8D00"),
                 Error = new MudColor("#FF6B55"),
                 TextPrimary = new MudColor("#F1F1F6"),
@@ -54,7 +54,7 @@ namespace TabajarasInterview.Web.Themes
             {
                 Default = new DefaultTypography
                 {
-                    FontFamily = ["Roboto", "Helvetica", "Arial", "sans-serif"]
+                    FontFamily = ["Ubuntu", "Helvetica", "Arial", "sans-serif"]
                 }
             }
         };
