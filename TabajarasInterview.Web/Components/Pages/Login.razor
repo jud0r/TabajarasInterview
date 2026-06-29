@@ -5,6 +5,9 @@
 @inject NavigationManager Navigation
 
 <AuthorizeView>
+    <Authorized>
+        <RedirectToDashboard ReturnUrl="@ReturnUrl" />
+    </Authorized>
     <NotAuthorized Context="notAuthorized">
         <PageTitle>Sign in</PageTitle>
 
@@ -73,9 +76,6 @@
 </AuthorizeView>
 
 @code {
-    [CascadingParameter]
-    private Task<AuthenticationState>? AuthenticationState { get; set; }
-
     private readonly LoginRequest _model = new();
     private string? _error;
     private bool _busy;
@@ -84,20 +84,7 @@
     [SupplyParameterFromQuery]
     public string? ReturnUrl { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
-        // Authenticated users should never see the login form; redirect them once
-        // from a lifecycle method instead of during rendering.
-        if (AuthenticationState is null)
-            return;
-
-        var state = await AuthenticationState;
-        if (state.User.Identity?.IsAuthenticated == true)
-        {
-            var destination = string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;
-            Navigation.NavigateTo(destination, replace: true);
-        }
-    }
+    private const string AlreadyLoggedDestination = "/dashboard";
 
     private async Task HandleLoginAsync()
     {
@@ -109,7 +96,7 @@
         {
             await AuthService.LoginAsync(result.Data);
 
-            var destination = string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;
+            var destination = string.IsNullOrWhiteSpace(ReturnUrl) ? AlreadyLoggedDestination : ReturnUrl;
             Navigation.NavigateTo(destination);
             return;
         }

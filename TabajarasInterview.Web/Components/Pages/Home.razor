@@ -1,223 +1,232 @@
 ﻿@page "/"
 @layout HomeLayout
 
-<PageTitle>Tabajaras Interviews — Hire brilliant people, faster</PageTitle>
+<AuthorizeView>
+    <Authorized>
+        <RedirectToDashboard />
+    </Authorized>
+    <NotAuthorized Context="authState">
 
-<div class="home-page">
+        <PageTitle>Tabajaras Interviews — Hire brilliant people, faster</PageTitle>
 
-    <!-- ============================= HERO ============================= -->
-    <section class="hero">
-        <span class="blob blob-primary"></span>
-        <span class="blob blob-tertiary"></span>
-        <span class="blob blob-secondary"></span>
+        <div class="home-page">
 
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="hero-container">
-            <MudGrid Spacing="8" Justify="Justify.Center" Class="align-center">
-                <MudItem xs="12" md="6">
-                    <div class="eyebrow">
-                        <MudIcon Icon="@Icons.Material.Filled.Verified" Size="Size.Small" Color="Color.Primary" />
-                        <span>A Tabajaras product</span>
-                    </div>
+            <!-- ============================= HERO ============================= -->
+            <section class="hero">
+                <span class="blob blob-primary"></span>
+                <span class="blob blob-tertiary"></span>
+                <span class="blob blob-secondary"></span>
 
-                    <MudText Typo="Typo.h2" Class="hero-title">
-                        Run <span class="gradient-text">brilliant interviews</span> and hire with confidence
-                    </MudText>
-
-                    <MudText Class="hero-subtitle">
-                        Tabajaras Interviews brings scheduling, structured scorecards and real-time
-                        collaboration into one place — so every panel stays aligned and every
-                        candidate gets a world-class experience.
-                    </MudText>
-
-                    <div class="hero-actions">
-                        <MudButton Href="/register"
-                                   Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   Size="Size.Large"
-                                   EndIcon="@Icons.Material.Filled.ArrowForward"
-                                   Style="border-radius: 24px; text-transform: none; font-weight: 700; padding: 10px 26px;">
-                            Get started free
-                        </MudButton>
-                        <MudButton Href="/login"
-                                   Variant="Variant.Outlined"
-                                   Color="Color.Primary"
-                                   Size="Size.Large"
-                                   StartIcon="@Icons.Material.Filled.Login"
-                                   Style="border-radius: 24px; text-transform: none; font-weight: 600; padding: 10px 26px;">
-                            Sign in
-                        </MudButton>
-                    </div>
-
-                    <div class="hero-trust">
-                        <div class="avatars">
-                            <span class="avatar a1">AK</span>
-                            <span class="avatar a2">MS</span>
-                            <span class="avatar a3">JD</span>
-                            <span class="avatar a4">RL</span>
-                        </div>
-                        <MudText Typo="Typo.body2" Class="trust-text">
-                            Trusted by <strong>2,000+</strong> Tabajaras interviewers worldwide
-                        </MudText>
-                    </div>
-                </MudItem>
-
-                <MudItem xs="12" md="6">
-                    <div class="preview-wrap">
-                        <div class="preview-card">
-                            <div class="preview-header">
-                                <div class="preview-avatar">AC</div>
-                                <div class="preview-id">
-                                    <div class="preview-name">Ana Carvalho</div>
-                                    <div class="preview-role">Senior .NET Engineer · Panel 3</div>
-                                </div>
+                <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="hero-container">
+                    <MudGrid Spacing="8" Justify="Justify.Center" Class="align-center">
+                        <MudItem xs="12" md="6">
+                            <div class="eyebrow">
+                                <MudIcon Icon="@Icons.Material.Filled.Verified" Size="Size.Small" Color="Color.Primary" />
+                                <span>A Tabajaras product</span>
                             </div>
 
-                            <div class="preview-section-label">Competency scorecard</div>
+                            <MudText Typo="Typo.h2" Class="hero-title">
+                                Run <span class="gradient-text">brilliant interviews</span> and hire with confidence
+                            </MudText>
 
-                            @foreach (var s in _scores)
+                            <MudText Class="hero-subtitle">
+                                Tabajaras Interviews brings scheduling, structured scorecards and real-time
+                                collaboration into one place — so every panel stays aligned and every
+                                candidate gets a world-class experience.
+                            </MudText>
+
+                            <div class="hero-actions">
+                                <MudButton Href="/register"
+                                           Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           Size="Size.Large"
+                                           EndIcon="@Icons.Material.Filled.ArrowForward"
+                                           Style="border-radius: 24px; text-transform: none; font-weight: 700; padding: 10px 26px;">
+                                    Get started free
+                                </MudButton>
+                                <MudButton Href="/login"
+                                           Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           Size="Size.Large"
+                                           StartIcon="@Icons.Material.Filled.Login"
+                                           Style="border-radius: 24px; text-transform: none; font-weight: 600; padding: 10px 26px;">
+                                    Sign in
+                                </MudButton>
+                            </div>
+
+                            <div class="hero-trust">
+                                <div class="avatars">
+                                    <span class="avatar a1">AK</span>
+                                    <span class="avatar a2">MS</span>
+                                    <span class="avatar a3">JD</span>
+                                    <span class="avatar a4">RL</span>
+                                </div>
+                                <MudText Typo="Typo.body2" Class="trust-text">
+                                    Trusted by <strong>2,000+</strong> Tabajaras interviewers worldwide
+                                </MudText>
+                            </div>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <div class="preview-wrap">
+                                <div class="preview-card">
+                                    <div class="preview-header">
+                                        <div class="preview-avatar">AC</div>
+                                        <div class="preview-id">
+                                            <div class="preview-name">Ana Carvalho</div>
+                                            <div class="preview-role">Senior .NET Engineer · Panel 3</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="preview-section-label">Competency scorecard</div>
+
+                                    @foreach (var s in _scores)
+                                    {
+                                        <div class="score-row">
+                                            <span class="score-label">@s.Label</span>
+                                            <span class="bar"><span class="bar-fill" style="width:@(s.Value)%;"></span></span>
+                                            <span class="score-val">@s.Rating<span class="score-max">/5</span></span>
+                                        </div>
+                                    }
+
+                                    <div class="preview-footer">
+                                        <div class="reviewers">
+                                            <span class="avatar mini r1">JD</span>
+                                            <span class="avatar mini r2">MS</span>
+                                            <span class="avatar mini r3">+3</span>
+                                        </div>
+                                        <span class="recommend">
+                                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Inherit" Size="Size.Small" />
+                                            Strong hire
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="floating-card floating-score">
+                                    <span class="float-icon float-icon-amber">
+                                        <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Inherit" Size="Size.Small" />
+                                    </span>
+                                    <span class="float-text">
+                                        <span class="float-strong">4.5 / 5</span>
+                                        <span class="float-muted">Avg. score</span>
+                                    </span>
+                                </div>
+
+                                <div class="floating-card floating-next">
+                                    <span class="float-icon float-icon-green">
+                                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Inherit" Size="Size.Small" />
+                                    </span>
+                                    <span class="float-text">
+                                        <span class="float-strong">Next interview</span>
+                                        <span class="float-muted">Today · 2:30 PM</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </MudItem>
+                    </MudGrid>
+                </MudContainer>
+            </section>
+
+            <!-- ============================= STATS ============================= -->
+            <section class="stats">
+                <MudContainer MaxWidth="MaxWidth.Large">
+                    <div class="stats-card">
+                        <div class="stats-grid">
+                            @foreach (var st in _stats)
                             {
-                                <div class="score-row">
-                                    <span class="score-label">@s.Label</span>
-                                    <span class="bar"><span class="bar-fill" style="width:@(s.Value)%;"></span></span>
-                                    <span class="score-val">@s.Rating<span class="score-max">/5</span></span>
+                                <div class="stat">
+                                    <div class="stat-value">@st.Value</div>
+                                    <div class="stat-label">@st.Label</div>
                                 </div>
                             }
-
-                            <div class="preview-footer">
-                                <div class="reviewers">
-                                    <span class="avatar mini r1">JD</span>
-                                    <span class="avatar mini r2">MS</span>
-                                    <span class="avatar mini r3">+3</span>
-                                </div>
-                                <span class="recommend">
-                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Inherit" Size="Size.Small" />
-                                    Strong hire
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="floating-card floating-score">
-                            <span class="float-icon float-icon-amber">
-                                <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Inherit" Size="Size.Small" />
-                            </span>
-                            <span class="float-text">
-                                <span class="float-strong">4.5 / 5</span>
-                                <span class="float-muted">Avg. score</span>
-                            </span>
-                        </div>
-
-                        <div class="floating-card floating-next">
-                            <span class="float-icon float-icon-green">
-                                <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Inherit" Size="Size.Small" />
-                            </span>
-                            <span class="float-text">
-                                <span class="float-strong">Next interview</span>
-                                <span class="float-muted">Today · 2:30 PM</span>
-                            </span>
                         </div>
                     </div>
-                </MudItem>
-            </MudGrid>
-        </MudContainer>
-    </section>
+                </MudContainer>
+            </section>
 
-    <!-- ============================= STATS ============================= -->
-    <section class="stats">
-        <MudContainer MaxWidth="MaxWidth.Large">
-            <div class="stats-card">
-                <div class="stats-grid">
-                    @foreach (var st in _stats)
-                    {
-                        <div class="stat">
-                            <div class="stat-value">@st.Value</div>
-                            <div class="stat-label">@st.Label</div>
+            <!-- ============================= FEATURES ============================= -->
+            <section class="features">
+                <MudContainer MaxWidth="MaxWidth.Large">
+                    <div class="section-head">
+                        <MudText Typo="Typo.h3" Class="section-kicker">Everything you need</MudText>
+                        <MudText Typo="Typo.h4" Class="section-title">One platform for the whole hiring loop</MudText>
+                        <MudText Class="section-sub">
+                            From the first screen to the final offer, give your interviewers the structure and
+                            insight they need to choose the right people — every single time.
+                        </MudText>
+                    </div>
+
+                    <MudGrid Spacing="6">
+                        @foreach (var f in _features)
+                        {
+                            <MudItem xs="12" sm="6" md="4">
+                                <div class="feature-card">
+                                    <div class="feature-icon i-@(f.Tone)">
+                                        <MudIcon Icon="@f.Icon" Color="Color.Inherit" Size="Size.Large" />
+                                    </div>
+                                    <MudText Typo="Typo.h6" Class="feature-title">@f.Title</MudText>
+                                    <MudText Typo="Typo.body2" Class="feature-desc">@f.Description</MudText>
+                                </div>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudContainer>
+            </section>
+
+            <!-- ============================= HOW IT WORKS ============================= -->
+            <section class="steps">
+                <MudContainer MaxWidth="MaxWidth.Large">
+                    <div class="section-head">
+                        <MudText Typo="Typo.h3" Class="section-kicker">How it works</MudText>
+                        <MudText Typo="Typo.h4" Class="section-title">From open role to great hire in three steps</MudText>
+                    </div>
+
+                    <MudGrid Spacing="6">
+                        @foreach (var step in _steps)
+                        {
+                            <MudItem xs="12" md="4">
+                                <div class="step">
+                                    <div class="step-num">@step.Num</div>
+                                    <MudText Typo="Typo.h6" Class="step-title">@step.Title</MudText>
+                                    <MudText Typo="Typo.body2" Class="step-desc">@step.Description</MudText>
+                                </div>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudContainer>
+            </section>
+
+            <!-- ============================= CTA ============================= -->
+            <section class="cta-band-wrap">
+                <MudContainer MaxWidth="MaxWidth.Large">
+                    <div class="cta-band">
+                        <MudText Typo="Typo.h3" Class="cta-title">Ready to transform your hiring?</MudText>
+                        <MudText Class="cta-sub">
+                            Join the Tabajaras teams running fairer, faster and friendlier interviews today.
+                        </MudText>
+                        <div class="cta-actions">
+                            <MudButton Href="/register"
+                                       Variant="Variant.Filled"
+                                       Size="Size.Large"
+                                       EndIcon="@Icons.Material.Filled.RocketLaunch"
+                                       Style="background:#ffffff; color: var(--mud-palette-primary); border-radius: 24px; text-transform: none; font-weight: 700; padding: 10px 28px;">
+                                Get started free
+                            </MudButton>
+                            <MudButton Href="/login"
+                                       Variant="Variant.Text"
+                                       Size="Size.Large"
+                                       Style="color:#ffffff; border: 1px solid rgba(255,255,255,0.6); border-radius: 24px; text-transform: none; font-weight: 600; padding: 10px 28px;">
+                                Sign in
+                            </MudButton>
                         </div>
-                    }
-                </div>
-            </div>
-        </MudContainer>
-    </section>
+                    </div>
+                </MudContainer>
+            </section>
 
-    <!-- ============================= FEATURES ============================= -->
-    <section class="features">
-        <MudContainer MaxWidth="MaxWidth.Large">
-            <div class="section-head">
-                <MudText Typo="Typo.h3" Class="section-kicker">Everything you need</MudText>
-                <MudText Typo="Typo.h4" Class="section-title">One platform for the whole hiring loop</MudText>
-                <MudText Class="section-sub">
-                    From the first screen to the final offer, give your interviewers the structure and
-                    insight they need to choose the right people — every single time.
-                </MudText>
-            </div>
+        </div>
 
-            <MudGrid Spacing="6">
-                @foreach (var f in _features)
-                {
-                    <MudItem xs="12" sm="6" md="4">
-                        <div class="feature-card">
-                            <div class="feature-icon i-@(f.Tone)">
-                                <MudIcon Icon="@f.Icon" Color="Color.Inherit" Size="Size.Large" />
-                            </div>
-                            <MudText Typo="Typo.h6" Class="feature-title">@f.Title</MudText>
-                            <MudText Typo="Typo.body2" Class="feature-desc">@f.Description</MudText>
-                        </div>
-                    </MudItem>
-                }
-            </MudGrid>
-        </MudContainer>
-    </section>
-
-    <!-- ============================= HOW IT WORKS ============================= -->
-    <section class="steps">
-        <MudContainer MaxWidth="MaxWidth.Large">
-            <div class="section-head">
-                <MudText Typo="Typo.h3" Class="section-kicker">How it works</MudText>
-                <MudText Typo="Typo.h4" Class="section-title">From open role to great hire in three steps</MudText>
-            </div>
-
-            <MudGrid Spacing="6">
-                @foreach (var step in _steps)
-                {
-                    <MudItem xs="12" md="4">
-                        <div class="step">
-                            <div class="step-num">@step.Num</div>
-                            <MudText Typo="Typo.h6" Class="step-title">@step.Title</MudText>
-                            <MudText Typo="Typo.body2" Class="step-desc">@step.Description</MudText>
-                        </div>
-                    </MudItem>
-                }
-            </MudGrid>
-        </MudContainer>
-    </section>
-
-    <!-- ============================= CTA ============================= -->
-    <section class="cta-band-wrap">
-        <MudContainer MaxWidth="MaxWidth.Large">
-            <div class="cta-band">
-                <MudText Typo="Typo.h3" Class="cta-title">Ready to transform your hiring?</MudText>
-                <MudText Class="cta-sub">
-                    Join the Tabajaras teams running fairer, faster and friendlier interviews today.
-                </MudText>
-                <div class="cta-actions">
-                    <MudButton Href="/register"
-                               Variant="Variant.Filled"
-                               Size="Size.Large"
-                               EndIcon="@Icons.Material.Filled.RocketLaunch"
-                               Style="background:#ffffff; color: var(--mud-palette-primary); border-radius: 24px; text-transform: none; font-weight: 700; padding: 10px 28px;">
-                        Get started free
-                    </MudButton>
-                    <MudButton Href="/login"
-                               Variant="Variant.Text"
-                               Size="Size.Large"
-                               Style="color:#ffffff; border: 1px solid rgba(255,255,255,0.6); border-radius: 24px; text-transform: none; font-weight: 600; padding: 10px 28px;">
-                        Sign in
-                    </MudButton>
-                </div>
-            </div>
-        </MudContainer>
-    </section>
-
-</div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     [CascadingParameter]

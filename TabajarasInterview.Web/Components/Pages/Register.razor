@@ -1,0 +1,124 @@
+@page "/register"
+@layout HomeLayout
+@attribute [AllowAnonymous]
+@inject IUserApiService UserApi
+@inject NavigationManager Navigation
+
+<AuthorizeView>
+    <Authorized>
+        <RedirectToDashboard />
+    </Authorized>
+    <NotAuthorized Context="authState">
+
+        <PageTitle>Create account</PageTitle>
+
+        <section class="register-page">
+            <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="register-container">
+                <div class="register-card">
+                    <div class="register-brand">
+                        <div class="eyebrow">
+                            <MudIcon Icon="@Icons.Material.Filled.Verified" Size="Size.Small" Color="Color.Inherit" />
+                            <span>A Tabajaras product</span>
+                        </div>
+                        <h1 class="register-title">
+                            Create your <span class="gradient-text">account</span>
+                        </h1>
+                        <p class="register-subtitle">
+                            Get started in seconds.
+                        </p>
+                    </div>
+
+                    <EditForm Model="_model" OnValidSubmit="HandleRegisterAsync">
+                        <DataAnnotationsValidator />
+
+                        <div class="d-flex gap-2">
+                            <MudTextField @bind-Value="_model.FirstName"
+                                          For="@(() => _model.FirstName)"
+                                          Label="First name"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Normal"
+                                          Class="register-field mb-2" />
+
+                            <MudTextField @bind-Value="_model.LastName"
+                                          For="@(() => _model.LastName)"
+                                          Label="Last name"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Normal"
+                                          Class="register-field mb-2" />
+                        </div>
+
+                        <MudTextField @bind-Value="_model.Email"
+                                      For="@(() => _model.Email)"
+                                      Label="Email"
+                                      InputType="InputType.Email"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Normal"
+                                      Class="register-field mb-2" />
+
+                        <MudTextField @bind-Value="_model.Password"
+                                      For="@(() => _model.Password)"
+                                      Label="Password"
+                                      InputType="InputType.Password"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Normal"
+                                      Class="register-field mb-2" />
+
+                        <MudTextField @bind-Value="_model.ConfirmPassword"
+                                      For="@(() => _model.ConfirmPassword)"
+                                      Label="Confirm password"
+                                      InputType="InputType.Password"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Normal"
+                                      Class="register-field mb-2" />
+
+                        @if (!string.IsNullOrEmpty(_error))
+                        {
+                            <MudAlert Severity="Severity.Error" Class="mb-4 mt-2">@_error</MudAlert>
+                        }
+
+                        <MudButton ButtonType="ButtonType.Submit"
+                                   Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   Size="Size.Large"
+                                   FullWidth="true"
+                                   Disabled="_busy"
+                                   Class="mt-4"
+                                   Style="border-radius: 14px; text-transform: none; font-weight: 700; padding: 12px 0;">
+                            @(_busy ? "Creating account..." : "Create account")
+                        </MudButton>
+                    </EditForm>
+
+                    <div class="form-footer">
+                        Already have an account?
+                        <MudLink Href="/login" Underline="Underline.None" Class="form-footer-link">
+                            Sign in
+                        </MudLink>
+                    </div>
+                </div>
+            </MudContainer>
+        </section>
+
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private readonly RegisterRequest _model = new();
+    private string? _error;
+    private bool _busy;
+
+    private async Task HandleRegisterAsync()
+    {
+        _busy = true;
+        _error = null;
+
+        var result = await UserApi.CreateAsync(_model);
+        if (result is { Success: true })
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        _error = result.ErrorMessage ?? "Could not create your account. Please try again.";
+        _busy = false;
+    }
+}
