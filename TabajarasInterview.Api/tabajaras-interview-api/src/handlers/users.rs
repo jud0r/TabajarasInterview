@@ -15,6 +15,7 @@ pub fn router() -> OpenApiRouter<DatabaseConnection> {
         .routes(routes!(get_user))
         .routes(routes!(create_user))
         .routes(routes!(update_user))
+        .routes(routes!(change_password))
         .routes(routes!(delete_user))
 }
 
@@ -46,6 +47,14 @@ pub struct UpdateUserRequest {
     pub first_name: Option<String>,
     #[validate(length(min = 3, message = "last_name must be at least 3 characters"))]
     pub last_name: Option<String>,
+}
+
+#[derive(Deserialize, Validate, ToSchema)]
+pub struct ChangePasswordRequest {
+    #[validate(length(min = 8, message = "current_password must be at least 8 characters"))]
+    pub current_password: String,
+    #[validate(length(min = 8, message = "new_password must be at least 8 characters"))]
+    pub new_password: String,
 }
 
 #[utoipa::path(
@@ -241,6 +250,65 @@ pub async fn update_user(
     };
 
     Ok(Json(response))
+}
+
+#[utoipa::path(
+    put,
+    path = "/password",
+    tag = "users",
+    security(("bearer_auth" = [])),
+    request_body = ChangePasswordRequest,
+    responses(
+        (status = 204, description = "Password changed"),
+        (status = 400, description = "Current password is incorrect"),
+        (status = 401, description = "Unauthorized"),
+        (status = 404, description = "User not found")
+    )
+)]
+#[axum::debug_handler]
+pub async fn change_password(
+    State(db): State<DatabaseConnection>,
+    AuthUser(claims): AuthUser,
+    Json(payload): Json<ChangePasswordRequest>,
+) -> Result<StatusCode, (StatusCode, String)> {
+
+    payload
+        .validate()
+        .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+
+    let user = users::Entity::find_by_id(claims.id)
+        .filter(users::Column::DeletedAt.is_null())
+        .one(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error".to_string())
+        })?
+        .ok_or((StatusCode::NOT_FOUND, "User not found".to_string()))?;
+
+    let password_ok = bcrypt::verify(&payload.current_password, &user.password_hash)
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to verify password".to_string()))?;
+
+    if !password_ok {
+        return Err((StatusCode::BAD_REQUEST, "Current password is incorrect".to_string()));
+    }
+
+    let new_password_hash = bcrypt::hash(&payload.new_password, bcrypt::DEFAULT_COST)
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password".to_string()))?;
+
+    let mut active_user: users::ActiveModel = user.into();
+    active_user.password_hash = Set(new_password_hash);
+    active_user.updated_at = Set(Some(chrono::Utc::now().naive_utc()));
+
+    active_user
+        .update(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error".to_string())
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(

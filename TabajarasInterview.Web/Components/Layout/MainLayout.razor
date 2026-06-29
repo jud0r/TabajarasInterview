@@ -1,5 +1,11 @@
 ﻿@inherits LayoutComponentBase
 @inject IJSRuntime Js
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject AuthService AuthService
+@inject IAuthApiService AuthApi
+@inject IUserApiService UserApi
+@inject NavigationManager Navigation
 
 <MudThemeProvider Theme="@_currentTheme" @bind-IsDarkMode="IsDarkMode" />
 <MudPopoverProvider />
@@ -16,11 +22,31 @@
                            Color="Color.Inherit"
                            OnClick="@ToggleDarkMode" />
         </MudTooltip>
+        <AuthorizeView Context="authState">
+            <Authorized>
+                <MudMenu @bind-Open="_userMenuOpen"
+                         AnchorOrigin="Origin.BottomRight"
+                         TransformOrigin="Origin.TopRight"
+                         Class="ml-2">
+                    <ActivatorContent Context="menuActivator">
+                        <MudAvatar Color="Color.Primary" Size="Size.Medium" Style="cursor: pointer;" @onclick="ToggleUserMenu">@Initials</MudAvatar>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <div class="px-4 py-2">
+                            <MudText Typo="Typo.subtitle2">@DisplayName</MudText>
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">@DisplayEmail</MudText>
+                        </div>
+                        <MudDivider Class="my-1" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.Person" OnClick="OpenEditProfileAsync">Edit profile</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Lock" OnClick="OpenChangePasswordAsync">Change password</MudMenuItem>
+                        <MudDivider Class="my-1" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">Logout</MudMenuItem>
+                    </ChildContent>
+                </MudMenu>
+            </Authorized>
+        </AuthorizeView>
     </MudAppBar>
     <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
-        <MudDrawerHeader>
-            <MudText Typo="Typo.h6">TabajarasInterview</MudText>
-        </MudDrawerHeader>
         <NavMenu />
     </MudDrawer>
     <MudMainContent>
@@ -38,11 +64,50 @@
 </div>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
     private bool _drawerOpen = true;
     private bool _isInteractive;
+    private bool _userMenuOpen;
     private readonly MudTheme _currentTheme = TabajarasTheme.Theme;
-    
+    private UserResponse? _currentUser;
+
     public bool IsDarkMode { get; private set; }
+
+    private string DisplayName => _currentUser?.FullName is { Length: > 0 } name ? name : "Account";
+    private string DisplayEmail => _currentUser?.Email ?? string.Empty;
+
+    private string Initials
+    {
+        get
+        {
+            var first = _currentUser?.FirstName;
+            var last = _currentUser?.LastName;
+
+            var initials = string.Concat(
+                string.IsNullOrWhiteSpace(first) ? string.Empty : first[..1],
+                string.IsNullOrWhiteSpace(last) ? string.Empty : last[..1]);
+
+            return string.IsNullOrEmpty(initials) ? "?" : initials.ToUpperInvariant();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is null)
+            return;
+
+        var authState = await AuthStateTask;
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            var result = await UserApi.GetCurrentAsync();
+            if (result is { Success: true, Data: not null })
+            {
+                _currentUser = result.Data;
+            }
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -83,5 +148,52 @@
     public void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
+    }
+
+    private void ToggleUserMenu()
+    {
+        _userMenuOpen = !_userMenuOpen;
+    }
+
+    private async Task OpenEditProfileAsync()
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<EditProfileDialog>("Edit profile", options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            var refreshed = await UserApi.GetCurrentAsync();
+            if (refreshed is { Success: true, Data: not null })
+            {
+                _currentUser = refreshed.Data;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task OpenChangePasswordAsync()
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        await DialogService.ShowAsync<ChangePasswordDialog>("Change password", options);
+    }
+
+    private async Task LogoutAsync()
+    {
+        var refreshToken = await AuthService.GetRefreshTokenAsync();
+        if (!string.IsNullOrWhiteSpace(refreshToken))
+        {
+            try
+            {
+                await AuthApi.LogoutAsync(refreshToken);
+            }
+            catch
+            {
+                // best-effort server-side revoke; proceed with local logout regardless
+            }
+        }
+
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login", forceLoad: true);
     }
 }

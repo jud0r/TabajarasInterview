@@ -52,5 +52,17 @@ namespace TabajarasInterview.Web.Services.Auth
         {
             return await cookies.GetAsync(RefreshTokenKey);
         }
+
+        /// <summary>
+        /// Refreshes the cached auth-state identity (name/email) without re-authenticating.
+        /// Call after a profile update so components like the header menu reflect the new name.
+        /// </summary>
+        public async Task RefreshUserAsync(UserResponse user)
+        {
+            if (authProvider is CustomAuthenticationStateProviderService custom)
+            {
+                await custom.MarkUserAsAuthenticated(user);
+            }
+        }
     }
 }
