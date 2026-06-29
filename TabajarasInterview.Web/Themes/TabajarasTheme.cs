@@ -9,7 +9,7 @@ namespace TabajarasInterview.Web.Themes
         {
             PaletteLight = new PaletteLight
             {
-                Primary = new MudColor("#4958FC"),
+                Primary = new MudColor("#0058AB"),
                 Secondary = new MudColor("#12B76A"),
                 Tertiary = new MudColor("#FE8D00"),
                 Background = new MudColor("#FFFFFF"),
@@ -18,7 +18,7 @@ namespace TabajarasInterview.Web.Themes
                 AppbarText = new MudColor("#000000"),
                 DrawerBackground = new MudColor("#FFFFFF"),
                 Success = new MudColor("#12B76A"),
-                Info = new MudColor("#4958FC"),
+                Info = new MudColor("#0058AB"),
                 Warning = new MudColor("#FE8D00"),
                 Error = new MudColor("#FF5135"),
                 TextPrimary = new MudColor("#000000"),
