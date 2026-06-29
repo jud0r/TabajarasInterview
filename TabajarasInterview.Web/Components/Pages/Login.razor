@@ -5,52 +5,77 @@
 @inject NavigationManager Navigation
 
 <AuthorizeView>
+    <Authorized>
+        <RedirectToDashboard ReturnUrl="@ReturnUrl" />
+    </Authorized>
     <NotAuthorized Context="notAuthorized">
         <PageTitle>Sign in</PageTitle>
 
-        <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-16">
-            <MudPaper Class="pa-8" Elevation="4">
-                <MudText Typo="Typo.h5" GutterBottom="true">Sign in</MudText>
+        <section class="login-page">
+            <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="login-container">
+                <div class="login-card">
+                    <div class="login-brand">
+                        <div class="eyebrow">
+                            <MudIcon Icon="@Icons.Material.Filled.Verified" Size="Size.Small" Color="Color.Inherit" />
+                            <span>A Tabajaras product</span>
+                        </div>
+                        <h1 class="login-title">
+                            Welcome <span class="gradient-text">back</span>
+                        </h1>
+                        <p class="login-subtitle">
+                            Sign in to access your account.
+                        </p>
+                    </div>
 
-                <EditForm Model="_model" OnValidSubmit="HandleLoginAsync">
-                    <DataAnnotationsValidator />
+                    <EditForm Model="_model" OnValidSubmit="HandleLoginAsync">
+                        <DataAnnotationsValidator />
 
-                    <MudTextField @bind-Value="_model.Email"
-                                  For="@(() => _model.Email)"
-                                  Label="Email"
-                                  InputType="InputType.Email"
-                                  Variant="Variant.Outlined"
-                                  Class="mb-4" />
+                        <MudTextField @bind-Value="_model.Email"
+                                      For="@(() => _model.Email)"
+                                      Label="Email"
+                                      InputType="InputType.Email"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Normal"
+                                      Class="login-field mb-2" />
 
-                    <MudTextField @bind-Value="_model.Password"
-                                  For="@(() => _model.Password)"
-                                  Label="Password"
-                                  InputType="InputType.Password"
-                                  Variant="Variant.Outlined"
-                                  Class="mb-4" />
+                        <MudTextField @bind-Value="_model.Password"
+                                      For="@(() => _model.Password)"
+                                      Label="Password"
+                                      InputType="InputType.Password"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Normal"
+                                      Class="login-field mb-2" />
 
-                    @if (!string.IsNullOrEmpty(_error))
-                    {
-                        <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
-                    }
+                        @if (!string.IsNullOrEmpty(_error))
+                        {
+                            <MudAlert Severity="Severity.Error" Class="mb-4 mt-2">@_error</MudAlert>
+                        }
 
-                    <MudButton ButtonType="ButtonType.Submit"
-                               Color="Color.Primary"
-                               Variant="Variant.Filled"
-                               FullWidth="true"
-                               Disabled="_busy">
-                        @(_busy ? "Signing in..." : "Sign in")
-                    </MudButton>
-                </EditForm>
-            </MudPaper>
-        </MudContainer>
+                        <MudButton ButtonType="ButtonType.Submit"
+                                   Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   Size="Size.Large"
+                                   FullWidth="true"
+                                   Disabled="_busy"
+                                   Class="mt-4"
+                                   Style="border-radius: 14px; text-transform: none; font-weight: 700; padding: 12px 0;">
+                            @(_busy ? "Signing in..." : "Sign in")
+                        </MudButton>
+                    </EditForm>
+
+                    <div class="form-footer">
+                        New to Tabajaras?
+                        <MudLink Href="/register" Underline="Underline.None" Class="form-footer-link">
+                            Create an account
+                        </MudLink>
+                    </div>
+                </div>
+            </MudContainer>
+        </section>
     </NotAuthorized>
 </AuthorizeView>
 
 @code {
-    [CascadingParameter]
-    private Task<AuthenticationState>? AuthenticationState { get; set; }
-
     private readonly LoginRequest _model = new();
     private string? _error;
     private bool _busy;
@@ -59,20 +84,7 @@
     [SupplyParameterFromQuery]
     public string? ReturnUrl { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
-        // Authenticated users should never see the login form; redirect them once
-        // from a lifecycle method instead of during rendering.
-        if (AuthenticationState is null)
-            return;
-
-        var state = await AuthenticationState;
-        if (state.User.Identity?.IsAuthenticated == true)
-        {
-            var destination = string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;
-            Navigation.NavigateTo(destination, replace: true);
-        }
-    }
+    private const string AlreadyLoggedDestination = "/dashboard";
 
     private async Task HandleLoginAsync()
     {
@@ -84,7 +96,7 @@
         {
             await AuthService.LoginAsync(result.Data);
 
-            var destination = string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;
+            var destination = string.IsNullOrWhiteSpace(ReturnUrl) ? AlreadyLoggedDestination : ReturnUrl;
             Navigation.NavigateTo(destination);
             return;
         }

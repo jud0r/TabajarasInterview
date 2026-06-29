@@ -1,0 +1,16 @@
+@inject NavigationManager Navigation
+
+@code {
+    [Parameter]
+    public string? ReturnUrl { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Authenticated users shouldn't see public pages; send them where they were
+        // headed (if known) or to the dashboard, replacing history so the back button
+        // doesn't bounce them straight back into this redirect.
+        var destination = string.IsNullOrWhiteSpace(ReturnUrl) ? "/dashboard" : ReturnUrl;
+
+        Navigation.NavigateTo(destination, replace: true);
+    }
+}

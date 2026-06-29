@@ -113,6 +113,7 @@ builder.Services.AddHttpClient("rust-api", client =>
     client.BaseAddress = new("http://rust-api");
 });
 
+builder.Services.AddScoped<IUserApiService, UserApiService>();
 builder.Services.AddScoped<IAuthApiService, AuthApiService>();
 builder.Services.AddScoped<AuthorizedHttpClientFactory>();
 builder.Services.AddScoped<CookieService>();

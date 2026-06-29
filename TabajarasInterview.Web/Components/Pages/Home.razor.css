@@ -56,7 +56,7 @@
     padding: 6px 14px;
     border-radius: 999px;
     background: color-mix(in srgb, var(--mud-palette-primary) 12%, transparent);
-    color: var(--mud-palette-primary);
+    color: var(--mud-palette-textprimary);
     font-weight: 600;
     font-size: 0.85rem;
     margin-bottom: 24px;
