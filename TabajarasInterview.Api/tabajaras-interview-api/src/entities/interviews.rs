@@ -33,6 +33,8 @@ pub enum Relation {
     CandidateApplications,
     #[sea_orm(has_many = "super::interview_questions::Entity")]
     InterviewQuestions,
+    #[sea_orm(has_many = "super::interview_reviewers::Entity")]
+    InterviewReviewers,
     #[sea_orm(
         belongs_to = "super::users::Entity",
         from = "Column::InterviewerId",
@@ -52,6 +54,12 @@ impl Related<super::candidate_applications::Entity> for Entity {
 impl Related<super::interview_questions::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::InterviewQuestions.def()
+    }
+}
+
+impl Related<super::interview_reviewers::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::InterviewReviewers.def()
     }
 }
 

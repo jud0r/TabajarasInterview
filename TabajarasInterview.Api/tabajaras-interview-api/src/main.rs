@@ -21,6 +21,10 @@ use utoipa_swagger_ui::SwaggerUi;
         (name = "candidate_applications", description = "Candidate application management endpoints"),
         (name = "stacks", description = "Stack management endpoints"),
         (name = "questions", description = "Question management endpoints"),
+        (name = "interviews", description = "Interview management endpoints"),
+        (name = "interview_questions", description = "Interview question management endpoints"),
+        (name = "interview_reviewers", description = "Interview reviewer management endpoints"),
+        (name = "position_stacks", description = "Position stack management endpoints"),
     )
 )]
 struct ApiDoc;
@@ -60,6 +64,10 @@ async fn main() {
         .nest("/api/candidate_applications", handlers::candidate_applications::router())
         .nest("/api/stacks", handlers::stacks::router())
         .nest("/api/questions", handlers::questions::router())
+        .nest("/api/interviews", handlers::interviews::router())
+        .nest("/api/interview_questions", handlers::interview_questions::router())
+        .nest("/api/interview_reviewers", handlers::interview_reviewers::router())
+        .nest("/api/position_stacks", handlers::position_stacks::router())
         .split_for_parts();
 
     let app = router
