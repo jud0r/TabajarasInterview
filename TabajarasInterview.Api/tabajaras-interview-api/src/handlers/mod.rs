@@ -1,6 +1,10 @@
 pub mod auth;
 pub mod candidate_applications;
 pub mod candidates;
+pub mod interview_questions;
+pub mod interview_reviewers;
+pub mod interviews;
+pub mod position_stacks;
 pub mod positions;
 pub mod questions;
 pub mod stacks;
