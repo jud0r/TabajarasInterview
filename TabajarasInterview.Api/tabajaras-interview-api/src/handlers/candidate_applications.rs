@@ -14,6 +14,8 @@ use crate::entities::candidate_applications;
 pub fn router() -> OpenApiRouter<DatabaseConnection> {
     OpenApiRouter::new()
         .routes(routes!(get_candidate_applications))
+        .routes(routes!(get_candidate_applications_by_candidate))
+        .routes(routes!(get_candidate_applications_by_position))
         .routes(routes!(get_candidate_application))
         .routes(routes!(create_candidate_application))
         .routes(routes!(update_candidate_application))
@@ -141,6 +143,78 @@ pub async fn get_candidate_applications(
 ) -> Result<Json<Vec<CandidateApplicationResponse>>, (StatusCode, &'static str)> {
 
     let applications = candidate_applications::Entity::find()
+        .filter(candidate_applications::Column::DeletedAt.is_null())
+        .all(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?;
+
+    let response = applications
+        .into_iter()
+        .map(to_response)
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(Json(response))
+}
+
+#[utoipa::path(
+    get,
+    path = "/by_candidate/{candidate_id}",
+    tag = "candidate_applications",
+    security(("bearer_auth" = [])),
+    params(("candidate_id" = i32, Path, description = "Candidate id")),
+    responses(
+        (status = 200, description = "List candidate applications for a candidate", body = [CandidateApplicationResponse]),
+        (status = 401, description = "Unauthorized")
+    )
+)]
+#[axum::debug_handler]
+pub async fn get_candidate_applications_by_candidate(
+    State(db): State<DatabaseConnection>,
+    _user: AuthUser,
+    Path(candidate_id): Path<i32>,
+) -> Result<Json<Vec<CandidateApplicationResponse>>, (StatusCode, &'static str)> {
+
+    let applications = candidate_applications::Entity::find()
+        .filter(candidate_applications::Column::CandidateId.eq(candidate_id))
+        .filter(candidate_applications::Column::DeletedAt.is_null())
+        .all(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?;
+
+    let response = applications
+        .into_iter()
+        .map(to_response)
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(Json(response))
+}
+
+#[utoipa::path(
+    get,
+    path = "/by_position/{position_id}",
+    tag = "candidate_applications",
+    security(("bearer_auth" = [])),
+    params(("position_id" = i32, Path, description = "Position id")),
+    responses(
+        (status = 200, description = "List candidate applications for a position", body = [CandidateApplicationResponse]),
+        (status = 401, description = "Unauthorized")
+    )
+)]
+#[axum::debug_handler]
+pub async fn get_candidate_applications_by_position(
+    State(db): State<DatabaseConnection>,
+    _user: AuthUser,
+    Path(position_id): Path<i32>,
+) -> Result<Json<Vec<CandidateApplicationResponse>>, (StatusCode, &'static str)> {
+
+    let applications = candidate_applications::Entity::find()
+        .filter(candidate_applications::Column::PositionId.eq(position_id))
         .filter(candidate_applications::Column::DeletedAt.is_null())
         .all(&db)
         .await

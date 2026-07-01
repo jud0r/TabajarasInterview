@@ -23,3 +23,27 @@ h1:focus {
     .blazor-error-boundary::after {
         content: "An error has occurred."
     }
+
+/* Recruitment dashboard ----------------------------------------------------- */
+.kpi-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kpi-card.kpi-card-clickable {
+    cursor: pointer;
+}
+
+.kpi-card.kpi-card-clickable:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--mud-elevation-6);
+}
+
+.kpi-card-selected {
+    outline: 2px solid var(--mud-palette-primary);
+    outline-offset: -1px;
+}
+
+.funnel-stage-bar {
+    transition: width 0.4s ease;
+    min-width: 2.5rem;
+}

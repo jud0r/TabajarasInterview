@@ -1,0 +1,48 @@
+@namespace TabajarasInterview.Web.Components.Shared.Dashboard
+
+<MudPaper Elevation="1" Class="@CssClass" Style="height:100%;" @onclick="HandleClickAsync" aria-label="@Title">
+    <div class="d-flex align-center pa-4">
+        <MudAvatar Color="Color" Variant="Variant.Filled" Size="Size.Large" Class="mr-4">
+            <MudIcon Icon="@Icon" />
+        </MudAvatar>
+        <div class="flex-grow-1">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">@Title</MudText>
+            <MudText Typo="Typo.h5">@Value</MudText>
+            @if (!string.IsNullOrWhiteSpace(Subtitle))
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@Subtitle</MudText>
+            }
+        </div>
+        @if (Clickable)
+        {
+            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" Class="mud-text-secondary" />
+        }
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public string Value { get; set; } = string.Empty;
+
+    [Parameter] public string Icon { get; set; } = Icons.Material.Filled.Insights;
+
+    [Parameter] public Color Color { get; set; } = Color.Primary;
+
+    [Parameter] public string? Subtitle { get; set; }
+
+    /// <summary>Highlights the card when its drill-down detail is active.</summary>
+    [Parameter] public bool Selected { get; set; }
+
+    /// <summary>Optional click handler enabling drill-down. When unset the card is static.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private bool Clickable => OnClick.HasDelegate;
+
+    private string CssClass =>
+        "kpi-card rounded-lg"
+        + (Clickable ? " kpi-card-clickable" : string.Empty)
+        + (Selected ? " kpi-card-selected" : string.Empty);
+
+    private Task HandleClickAsync() => Clickable ? OnClick.InvokeAsync() : Task.CompletedTask;
+}

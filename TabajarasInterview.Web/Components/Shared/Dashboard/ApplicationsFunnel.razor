@@ -1,0 +1,67 @@
+@namespace TabajarasInterview.Web.Components.Shared.Dashboard
+
+<div class="funnel">
+    @{
+        var progressing = Stages.Where(s => !s.IsTerminal).ToList();
+        var entryCount = progressing.FirstOrDefault()?.Count ?? 0;
+        var maxCount = Stages.Count > 0 ? Stages.Max(s => s.Count) : 0;
+        double? previousCount = null;
+    }
+    @for (var i = 0; i < Stages.Count; i++)
+    {
+        var stage = Stages[i];
+        var widthPct = maxCount > 0 ? Math.Max(6, (int)Math.Round(stage.Count * 100.0 / maxCount)) : 0;
+        var color = StageColor(stage, i);
+
+        if (!stage.IsTerminal && previousCount is { } prev && prev > 0)
+        {
+            var conversion = Math.Round(stage.Count * 100.0 / prev, 1);
+            <div class="d-flex align-center my-1" style="padding-left:150px;">
+                <MudIcon Icon="@Icons.Material.Filled.SouthEast" Size="Size.Small" Class="mud-text-secondary mr-1" />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@conversion.ToString("0.#")% conversion</MudText>
+            </div>
+        }
+
+        <div class="d-flex align-center mb-1">
+            <div style="width:150px; flex-shrink:0;">
+                <MudText Typo="Typo.body2">@stage.Stage</MudText>
+            </div>
+            <div class="flex-grow-1">
+                <div class="funnel-stage-bar rounded px-3 d-flex align-center"
+                     style="@($"width:{widthPct}%; background:{color}; height:38px;")">
+                    <MudText Typo="Typo.subtitle2" Style="color:#fff;">@stage.Count.ToString("N0")</MudText>
+                </div>
+            </div>
+            <div style="width:72px; flex-shrink:0; text-align:right;" class="pl-2">
+                @if (stage.IsTerminal)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text">lost</MudChip>
+                }
+                else if (entryCount > 0)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@Math.Round(stage.Count * 100.0 / entryCount).ToString("0")%</MudText>
+                }
+            </div>
+        </div>
+
+        if (!stage.IsTerminal)
+        {
+            previousCount = stage.Count;
+        }
+    }
+</div>
+
+@code {
+    /// <summary>Ordered funnel stages. Stages flagged <see cref="FunnelStage.IsTerminal"/> render as losses.</summary>
+    [Parameter, EditorRequired] public List<FunnelStage> Stages { get; set; } = [];
+
+    private static string StageColor(FunnelStage stage, int index) => stage.IsTerminal
+        ? "var(--mud-palette-error)"
+        : index switch
+        {
+            0 => "var(--mud-palette-info)",
+            1 => "var(--mud-palette-primary)",
+            2 => "var(--mud-palette-success)",
+            _ => "var(--mud-palette-secondary)"
+        };
+}

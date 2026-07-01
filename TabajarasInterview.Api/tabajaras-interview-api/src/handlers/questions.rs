@@ -13,6 +13,7 @@ use crate::entities::questions;
 pub fn router() -> OpenApiRouter<DatabaseConnection> {
     OpenApiRouter::new()
         .routes(routes!(get_questions))
+        .routes(routes!(get_questions_by_stack))
         .routes(routes!(get_question))
         .routes(routes!(create_question))
         .routes(routes!(update_question))
@@ -62,6 +63,49 @@ pub async fn get_questions(
 ) -> Result<Json<Vec<QuestionResponse>>, (StatusCode, &'static str)> {
 
     let questions = questions::Entity::find()
+        .filter(questions::Column::DeletedAt.is_null())
+        .all(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?;
+
+    let response = questions
+        .into_iter()
+        .map(|q| QuestionResponse {
+            id: q.id,
+            stack_id: q.stack_id,
+            question: q.question,
+            acceptable_answer: q.acceptable_answer,
+            created_at: q.created_at,
+            updated_at: q.updated_at,
+        })
+        .collect();
+
+    Ok(Json(response))
+}
+
+#[utoipa::path(
+    get,
+    path = "/by_stack/{stack_id}",
+    tag = "questions",
+    security(("bearer_auth" = [])),
+    params(("stack_id" = i32, Path, description = "Stack id")),
+    responses(
+        (status = 200, description = "List questions for a stack", body = [QuestionResponse]),
+        (status = 401, description = "Unauthorized")
+    )
+)]
+#[axum::debug_handler]
+pub async fn get_questions_by_stack(
+    State(db): State<DatabaseConnection>,
+    _user: AuthUser,
+    Path(stack_id): Path<i32>,
+) -> Result<Json<Vec<QuestionResponse>>, (StatusCode, &'static str)> {
+
+    let questions = questions::Entity::find()
+        .filter(questions::Column::StackId.eq(stack_id))
         .filter(questions::Column::DeletedAt.is_null())
         .all(&db)
         .await
