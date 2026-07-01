@@ -108,7 +108,7 @@ else if (_data is not null)
         <MudItem xs="12" sm="6" md="3">
             <KpiCard Title="Avg final score" Value="@Score(_data.Kpis.AverageFinalScore)"
                      Icon="@Icons.Material.Filled.Star" Color="Color.Tertiary"
-                     Subtitle="candidate_applications.final_score"
+                     Subtitle="final_score"
                      Selected="@(_selectedKpi == "score")" OnClick="@(() => SelectKpi("score"))" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
@@ -205,7 +205,7 @@ else if (_data is not null)
                 @if (_statusData.Length > 0)
                 {
                     <div class="d-flex justify-center">
-                        <MudChart T="double" ChartType="ChartType.Donut" InputData="_statusData" InputLabels="_statusLabels"
+                        <MudChart T="double" ChartType="ChartType.Donut" ChartSeries="_statusSeries" ChartLabels="_statusLabels"
                                   Width="260px" Height="260px" ChartOptions="_donutOptions" />
                     </div>
                 }
@@ -221,7 +221,7 @@ else if (_data is not null)
                 <MudText Typo="Typo.h6" GutterBottom="true">Interviews per type</MudText>
                 @if (_interviewLabels.Length > 0)
                 {
-                    <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="_interviewSeries" XAxisLabels="_interviewLabels"
+                    <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="_interviewSeries" ChartLabels="_interviewLabels"
                               Width="100%" Height="300px" ChartOptions="_barOptions" />
                 }
             </MudPaper>
@@ -271,7 +271,7 @@ else if (_data is not null)
                 <MudText Typo="Typo.h6" GutterBottom="true">Hiring over time</MudText>
                 @if (_hiringLabels.Length > 0)
                 {
-                    <MudChart T="double" ChartType="ChartType.Line" ChartSeries="_hiringSeries" XAxisLabels="_hiringLabels"
+                    <MudChart T="double" ChartType="ChartType.Line" ChartSeries="_hiringSeries" ChartLabels="_hiringLabels"
                               Width="100%" Height="300px" ChartOptions="_lineOptions" />
                 }
             </MudPaper>
@@ -543,18 +543,39 @@ else
     // Chart data
     private double[] _statusData = [];
     private string[] _statusLabels = [];
+    private List<ChartSeries<double>> _statusSeries = [];
     private List<ChartSeries<double>> _interviewSeries = [];
     private string[] _interviewLabels = [];
     private List<ChartSeries<double>> _hiringSeries = [];
     private string[] _hiringLabels = [];
 
+    // Chart palette derived from the application theme so the charts stay in
+    // sync with the brand colors defined in TabajarasTheme.
+    private static readonly Palette ThemePalette = TabajarasTheme.Theme.PaletteLight;
+
     private static readonly string[] Palette =
     [
-        "#0058AB", "#12B76A", "#FE8D00", "#FF5135", "#7E6FFF", "#00B8D9", "#F4B400", "#9C27B0"
+        ThemePalette.Primary.Value,
+        ThemePalette.Secondary.Value,
+        ThemePalette.Tertiary.Value,
+        ThemePalette.Error.Value,
+        ThemePalette.Primary.ColorLighten(0.15).Value,
+        ThemePalette.Secondary.ColorLighten(0.15).Value,
+        ThemePalette.Tertiary.ColorLighten(0.15).Value,
+        ThemePalette.Error.ColorLighten(0.15).Value
+    ];
+
+    private static readonly string[] DonutPalette =
+    [
+        ThemePalette.Primary.Value,
+        ThemePalette.Primary.ColorLighten(0.15).Value,
+        ThemePalette.Success.ColorLighten(0.15).Value,
+        ThemePalette.Success.Value,
+        ThemePalette.Error.Value,
     ];
 
     private readonly ChartOptions _barOptions = new() { ChartPalette = Palette };
-    private readonly ChartOptions _donutOptions = new() { ChartPalette = Palette };
+    private readonly ChartOptions _donutOptions = new() { ChartPalette = DonutPalette };
     private readonly ChartOptions _lineOptions = new() { ChartPalette = Palette };
 
     protected override async Task OnInitializedAsync() => await ReloadAsync();
@@ -600,6 +621,7 @@ else
 
         _statusData = _data.StatusDistribution.Select(s => (double)s.Count).ToArray();
         _statusLabels = _data.StatusDistribution.Select(s => s.Status).ToArray();
+        _statusSeries = [new ChartSeries<double> { Name = "Status", Data = _statusData }];
 
         _interviewLabels = _data.InterviewTypes.Select(t => t.Type).ToArray();
         _interviewSeries =
