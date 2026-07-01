@@ -1,0 +1,253 @@
+@page "/candidates"
+@attribute [Authorize]
+@implements IDisposable
+@inject ICandidateApiService CandidateApi
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Candidates</PageTitle>
+
+<div class="d-flex flex-wrap align-center mb-4">
+    <div class="flex-grow-1 mr-4">
+        <MudText Typo="Typo.h4">Candidates</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Manage candidate records</MudText>
+    </div>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
+        <MudTextField @bind-Value="_searchString"
+                      Immediate="true"
+                      Placeholder="Search name or email"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      IconSize="Size.Medium"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Clearable="true"
+                      Style="width:280px;" />
+        <MudTooltip Text="Refresh">
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" />
+        </MudTooltip>
+        <MudButton StartIcon="@Icons.Material.Filled.Add"
+                   Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="OpenCreateDialogAsync">
+            Add candidate
+        </MudButton>
+    </MudStack>
+</div>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-4"
+              ShowCloseIcon="true" CloseIconClicked="@(() => _error = null)">
+        @_error
+    </MudAlert>
+}
+
+<MudTable T="CandidateResponse"
+          Items="_candidates"
+          Filter="FilterFunc"
+          Loading="_loading"
+          LoadingProgressColor="Color.Primary"
+          Hover="true"
+          Striped="true"
+          Elevation="2"
+          AllowUnsorted="false">
+    <ToolBarContent>
+        <MudText Typo="Typo.subtitle1">@FilteredCount candidate(s)</MudText>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>
+            <MudTableSortLabel SortBy="new Func<CandidateResponse, object>(x => x.FullName)"
+                               InitialDirection="SortDirection.Ascending">
+                Name
+            </MudTableSortLabel>
+        </MudTh>
+        <MudTh>Email</MudTh>
+        <MudTh>Phone</MudTh>
+        <MudTh>
+            <MudTableSortLabel SortBy="new Func<CandidateResponse, object>(x => x.CreatedAt)">
+                Added
+            </MudTableSortLabel>
+        </MudTh>
+        <MudTh Style="text-align:right;">Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">@context.FullName</MudTd>
+        <MudTd DataLabel="Email">@context.Email</MudTd>
+        <MudTd DataLabel="Phone">@(string.IsNullOrWhiteSpace(context.Phone) ? "—" : context.Phone)</MudTd>
+        <MudTd DataLabel="Added">@context.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</MudTd>
+        <MudTd DataLabel="Actions" Style="text-align:right;">
+            <MudTooltip Text="View details">
+                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                               OnClick="@(() => OpenDetailsAsync(context))" />
+            </MudTooltip>
+            <MudTooltip Text="Edit">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="@(() => OpenEditDialogAsync(context))" />
+            </MudTooltip>
+            <MudTooltip Text="Delete">
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="@(() => ConfirmDeleteAsync(context))" />
+            </MudTooltip>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <div class="d-flex flex-column align-center py-8">
+            <MudIcon Icon="@Icons.Material.Filled.PeopleOutline" Size="Size.Large" Class="mb-2 mud-text-secondary" />
+            <MudText Typo="Typo.subtitle1">No candidates found</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                @(string.IsNullOrWhiteSpace(_searchString)
+                    ? "Add your first candidate to get started."
+                    : "Try adjusting your search.")
+            </MudText>
+            @if (string.IsNullOrWhiteSpace(_searchString))
+            {
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                           Variant="Variant.Filled" OnClick="OpenCreateDialogAsync">
+                    Add candidate
+                </MudButton>
+            }
+        </div>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText>Loading candidates...</MudText>
+    </LoadingContent>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private List<CandidateResponse> _candidates = [];
+    private bool _loading = true;
+    private string? _error;
+    private string _searchString = string.Empty;
+    private CancellationTokenSource? _cts;
+
+    private int FilteredCount => _candidates.Count(FilterFunc);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        try
+        {
+            var result = await CandidateApi.GetCandidatesAsync(token);
+            if (result is { Success: true, Data: not null })
+            {
+                _candidates = result.Data;
+            }
+            else
+            {
+                _error = result.ErrorMessage ?? "Could not load candidates.";
+                _candidates = [];
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer load superseded this one; keep the latest state.
+        }
+        catch (Exception ex)
+        {
+            _error = $"Unexpected error: {ex.Message}";
+            _candidates = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Task ReloadAsync() => LoadAsync();
+
+    private bool FilterFunc(CandidateResponse candidate)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+        {
+            return true;
+        }
+
+        return candidate.FullName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || candidate.Email.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task OpenCreateDialogAsync()
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<CandidateDialog>("Add candidate", options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenEditDialogAsync(CandidateResponse candidate)
+    {
+        var parameters = new DialogParameters<CandidateDialog>
+        {
+            { x => x.Candidate, candidate }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<CandidateDialog>("Edit candidate", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenDetailsAsync(CandidateResponse candidate)
+    {
+        // Exercise GET /api/candidates/{id} so the details reflect the freshest server state.
+        var detailResult = await CandidateApi.GetCandidateByIdAsync(candidate.Id);
+        var detail = detailResult is { Success: true, Data: not null } ? detailResult.Data : candidate;
+
+        var parameters = new DialogParameters<CandidateDialog>
+        {
+            { x => x.Candidate, detail },
+            { x => x.ReadOnly, true }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        await DialogService.ShowAsync<CandidateDialog>("Candidate details", parameters, options);
+    }
+
+    private async Task ConfirmDeleteAsync(CandidateResponse candidate)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete candidate",
+            $"Are you sure you want to delete \"{candidate.FullName}\"? This performs a soft delete on the server.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var result = await CandidateApi.DeleteCandidateAsync(candidate.Id);
+        if (result.Success)
+        {
+            Snackbar.Add("Candidate deleted.", Severity.Success);
+            await LoadAsync();
+        }
+        else
+        {
+            Snackbar.Add(result.ErrorMessage ?? "Could not delete the candidate.", Severity.Error);
+        }
+    }
+
+    public void Dispose() => _cts?.Cancel();
+}

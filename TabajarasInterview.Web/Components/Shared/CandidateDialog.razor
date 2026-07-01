@@ -1,0 +1,127 @@
+@inject ICandidateApiService CandidateApi
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="_model" OnValidSubmit="HandleSubmitAsync">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="_model.FirstName"
+                          For="@(() => _model.FirstName)"
+                          Label="First name"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Normal"
+                          ReadOnly="ReadOnly"
+                          Class="mb-2" />
+
+            <MudTextField @bind-Value="_model.LastName"
+                          For="@(() => _model.LastName)"
+                          Label="Last name"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Normal"
+                          ReadOnly="ReadOnly"
+                          Class="mb-2" />
+
+            <MudTextField @bind-Value="_model.Email"
+                          For="@(() => _model.Email)"
+                          Label="Email"
+                          InputType="InputType.Email"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Normal"
+                          ReadOnly="ReadOnly"
+                          Class="mb-2" />
+
+            <MudTextField @bind-Value="_model.Phone"
+                          Label="Phone"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Normal"
+                          ReadOnly="ReadOnly"
+                          Class="mb-2" />
+
+            @if (ReadOnly && Candidate is not null)
+            {
+                <div class="d-flex justify-space-between py-1">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Created</MudText>
+                    <MudText Typo="Typo.body2">@Candidate.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                </div>
+                <div class="d-flex justify-space-between py-1">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Last updated</MudText>
+                    <MudText Typo="Typo.body2">@(Candidate.UpdatedAt?.ToLocalTime().ToString("g") ?? "—")</MudText>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-2">@_error</MudAlert>
+            }
+
+            <div class="d-flex justify-end gap-2 mt-4">
+                <MudButton OnClick="Cancel" Variant="Variant.Text">@(ReadOnly ? "Close" : "Cancel")</MudButton>
+                @if (!ReadOnly)
+                {
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               Disabled="_busy">
+                        @(_busy ? "Saving..." : _saveLabel)
+                    </MudButton>
+                }
+            </div>
+        </EditForm>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>When set, the dialog edits/views an existing candidate; otherwise it creates a new one.</summary>
+    [Parameter] public CandidateResponse? Candidate { get; set; }
+
+    /// <summary>Renders the form as a non-editable details view (used by the "View details" action).</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    private readonly CandidateRequest _model = new();
+    private bool _busy;
+    private string? _error;
+    private string _saveLabel = "Create";
+    
+    protected override void OnInitialized()
+    {
+        if (Candidate is not null)
+        {
+            _model.FirstName = Candidate.FirstName;
+            _model.LastName = Candidate.LastName;
+            _model.Email = Candidate.Email;
+            _model.Phone = Candidate.Phone;
+            _saveLabel = "Save changes";
+        }
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        if (ReadOnly)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+
+        var result = Candidate is null
+            ? await CandidateApi.CreateCandidateAsync(_model)
+            : await CandidateApi.UpdateCandidateAsync(Candidate.Id, _model);
+
+        if (result is { Success: true })
+        {
+            Snackbar.Add(Candidate is null ? "Candidate created." : "Candidate updated.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+            return;
+        }
+
+        _error = result.ErrorMessage ?? "Could not save the candidate. Please try again.";
+        _busy = false;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

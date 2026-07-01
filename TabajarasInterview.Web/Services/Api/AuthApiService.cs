@@ -5,25 +5,25 @@ namespace TabajarasInterview.Web.Services.Api
 {
     public class AuthApiService(IHttpClientFactory factory, ApiResponseParserService parser) : IAuthApiService
     {
-        private const string BaseUrl = "rust-api";
+        private const string ClientName = "rust-api";
 
         public async Task<ApiResult<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default)
         {
-            var client = factory.CreateClient(BaseUrl);
+            var client = factory.CreateClient(ClientName);
             var response = await client.PostAsJsonAsync("api/auth/login", request, ct);
             return await parser.ParseAsync<LoginResponse>(response, ct);
         }
 
         public async Task<ApiResult<LoginResponse>> RefreshAsync(string refreshToken, CancellationToken ct = default)
         {
-            var client = factory.CreateClient(BaseUrl);
+            var client = factory.CreateClient(ClientName);
             var response = await client.PostAsJsonAsync("api/auth/refresh", new { RefreshToken = refreshToken }, ct);
             return await parser.ParseAsync<LoginResponse>(response, ct);
         }
 
         public async Task<ApiResult> LogoutAsync(string refreshToken, CancellationToken ct = default)
         {
-            var client = factory.CreateClient(BaseUrl);
+            var client = factory.CreateClient(ClientName);
             var response = await client.PostAsJsonAsync("api/auth/logout", new { RefreshToken = refreshToken }, ct);
             return await parser.ParseAsync(response, ct);
         }

@@ -49,6 +49,8 @@ pub struct UpdateCandidateRequest {
     pub first_name: Option<String>,
     #[validate(length(min = 3, message = "last_name must be at least 3 characters"))]
     pub last_name: Option<String>,
+    #[validate(email(message = "email must be a valid email address"))]
+    pub email: Option<String>,
     pub phone: Option<String>,
 }
 
@@ -248,6 +250,10 @@ pub async fn update_candidate(
 
     if let Some(phone) = payload.phone {
         active_candidate.phone = Set(Some(phone));
+    }
+
+    if let Some(email) = payload.email {
+        active_candidate.email = Set(email);
     }
 
     active_candidate.updated_at = Set(Some(chrono::Utc::now().naive_utc()));
