@@ -1,19 +1,672 @@
 ﻿@page "/dashboard"
 @attribute [Authorize]
+@using System.Globalization
+@inject IDashboardApiService DashboardApi
 
 <PageTitle>Dashboard</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Dashboard</MudText>
+<div class="recruitment-dashboard">
 
-<MudText Class="mb-4" role="status">Current count: @currentCount</MudText>
+<div class="d-flex flex-wrap align-center mb-4">
+    <div class="flex-grow-1 mr-4">
+        <MudText Typo="Typo.h4">Recruitment dashboard</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Hiring pipeline insights &amp; analytics</MudText>
+    </div>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
+        <MudDateRangePicker @bind-DateRange="_dateRange" @bind-DateRange:after="ReloadAsync"
+                            Label="Date range" PickerVariant="PickerVariant.Dialog" Clearable="true"
+                            Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:240px;" />
+        <MudSelect T="int?" @bind-Value="_selectedPositionId" @bind-Value:after="ReloadAsync"
+                   Label="Position" Clearable="true" Dense="true" Variant="Variant.Outlined"
+                   Margin="Margin.Dense" Style="width:200px;">
+            <MudSelectItem T="int?" Value="@((int?)null)">All positions</MudSelectItem>
+            @foreach (var p in _positionOptions)
+            {
+                <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Position</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="string" @bind-Value="_selectedInterviewType" @bind-Value:after="ReloadAsync"
+                   Label="Interview type" Clearable="true" Dense="true" Variant="Variant.Outlined"
+                   Margin="Margin.Dense" Style="width:190px;">
+            <MudSelectItem T="string" Value="@((string?)null)">All types</MudSelectItem>
+            @foreach (var t in _interviewTypeOptions)
+            {
+                <MudSelectItem T="string" Value="@t">@t</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTooltip Text="Clear filters">
+            <MudIconButton Icon="@Icons.Material.Filled.FilterAltOff" OnClick="ClearFiltersAsync" />
+        </MudTooltip>
+        <MudTooltip Text="Refresh">
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" />
+        </MudTooltip>
+    </MudStack>
+</div>
 
-<MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="IncrementCount">Click me</MudButton>
+@if (_loading && _data is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+    <MudGrid Spacing="4">
+        @for (var i = 0; i < 8; i++)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudSkeleton Height="92px" Animation="Animation.Wave" />
+            </MudItem>
+        }
+    </MudGrid>
+}
+else if (_data is not null)
+{
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+    }
+
+    @if (_usingSampleData)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+            Live API (<code>GET /api/dashboard/overview</code>) is unavailable — showing representative sample data.
+        </MudAlert>
+    }
+
+    @foreach (var alert in _data.Alerts)
+    {
+        <MudAlert Severity="@MapSeverity(alert.Severity)" Variant="Variant.Filled" Dense="true" Class="mb-2">
+            <strong>@alert.Title</strong> — @alert.Message
+        </MudAlert>
+    }
+
+    @* ---------------------------------------------------------------- KPIs *@
+    <MudGrid Spacing="4" Class="mt-2">
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Title="Total candidates" Value="@_data.Kpis.TotalCandidates.ToString("N0")"
+                     Icon="@Icons.Material.Filled.People" Color="Color.Primary"
+                     Subtitle="@($"{_data.RecentCandidates.Count} added recently")"
+                     Selected="@(_selectedKpi == "candidates")" OnClick="@(() => SelectKpi("candidates"))" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Title="Active positions" Value="@_data.Kpis.ActivePositions.ToString("N0")"
+                     Icon="@Icons.Material.Filled.Work" Color="Color.Tertiary"
+                     Subtitle="@($"{_data.Positions.Count(p => p.IsOpen)} currently open")" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Title="Total applications" Value="@_data.Kpis.TotalApplications.ToString("N0")"
+                     Icon="@Icons.Material.Filled.Assignment" Color="Color.Info"
+                     Subtitle="Across all positions"
+                     Selected="@(_selectedKpi == "applications")" OnClick="@(() => SelectKpi("applications"))" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Title="In progress" Value="@_data.Kpis.ApplicationsInProgress.ToString("N0")"
+                     Icon="@Icons.Material.Filled.HourglassTop" Color="Color.Warning"
+                     Subtitle="Open in the pipeline" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Title="Completed" Value="@_data.Kpis.CompletedApplications.ToString("N0")"
+                     Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success"
+                     Subtitle="Closed applications" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Title="Avg final score" Value="@Score(_data.Kpis.AverageFinalScore)"
+                     Icon="@Icons.Material.Filled.Star" Color="Color.Tertiary"
+                     Subtitle="candidate_applications.final_score"
+                     Selected="@(_selectedKpi == "score")" OnClick="@(() => SelectKpi("score"))" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Title="Avg interview score" Value="@Score(_data.Kpis.AverageInterviewScore)"
+                     Icon="@Icons.Material.Filled.Grading" Color="Color.Info"
+                     Subtitle="@($"{Score(_data.AverageInterviewsPerCandidate)} interviews / candidate")" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Title="Pass rate" Value="@Percent(_data.Kpis.PassRate)"
+                     Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success"
+                     Subtitle="Offers vs. completed" />
+        </MudItem>
+    </MudGrid>
+
+    @* ----------------------------------------------------------- Drill-down *@
+    @if (_selectedKpi is not null)
+    {
+        <MudPaper Class="pa-4 mt-4" Elevation="3">
+            <div class="d-flex align-center mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.ZoomIn" Color="Color.Primary" Class="mr-2" />
+                <MudText Typo="Typo.h6">@DrillTitle()</MudText>
+                <MudSpacer />
+                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => _selectedKpi = null)" />
+            </div>
+            @if (_selectedKpi == "candidates")
+            {
+                <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                    <thead>
+                        <tr><th>Candidate</th><th>Position</th><th style="text-align:right;">Added</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in _data.RecentCandidates)
+                        {
+                            <tr>
+                                <td>@c.Name</td>
+                                <td>@c.Position</td>
+                                <td style="text-align:right;">@c.CreatedAt.ToString("MMM d, yyyy")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+            else if (_selectedKpi == "applications")
+            {
+                var entry = _data.Funnel.FirstOrDefault(s => !s.IsTerminal)?.Count ?? 0;
+                <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                    <thead>
+                        <tr><th>Stage</th><th style="text-align:right;">Count</th><th style="text-align:right;">% of applied</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in _data.Funnel)
+                        {
+                            <tr>
+                                <td>@s.Stage</td>
+                                <td style="text-align:right;">@s.Count.ToString("N0")</td>
+                                <td style="text-align:right;">@(entry > 0 ? Math.Round(s.Count * 100.0 / entry).ToString("0") + "%" : "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+            else if (_selectedKpi == "score")
+            {
+                <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                    <thead>
+                        <tr><th>Candidate</th><th>Position</th><th style="text-align:right;">Final score</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in _data.TopCandidates.Take(5))
+                        {
+                            <tr>
+                                <td>@c.Name</td>
+                                <td>@c.Position</td>
+                                <td style="text-align:right;">@Score(c.FinalScore)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        </MudPaper>
+    }
+
+    @* ------------------------------------------------- Funnel & status pie *@
+    <MudGrid Spacing="4" Class="mt-2">
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" GutterBottom="true">Applications funnel</MudText>
+                <ApplicationsFunnel Stages="_data.Funnel" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4 d-flex flex-column" Style="height:100%;">
+                <MudText Typo="Typo.h6" GutterBottom="true">Status distribution</MudText>
+                @if (_statusData.Length > 0)
+                {
+                    <div class="d-flex justify-center">
+                        <MudChart T="double" ChartType="ChartType.Donut" InputData="_statusData" InputLabels="_statusLabels"
+                                  Width="260px" Height="260px" ChartOptions="_donutOptions" />
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* --------------------------------------------------- Interview analytics *@
+    <MudText Typo="Typo.h5" Class="mt-8 mb-3">Interview analytics</MudText>
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" GutterBottom="true">Interviews per type</MudText>
+                @if (_interviewLabels.Length > 0)
+                {
+                    <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="_interviewSeries" XAxisLabels="_interviewLabels"
+                              Width="100%" Height="300px" ChartOptions="_barOptions" />
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" GutterBottom="true">Scores by type</MudText>
+                <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th style="text-align:right;">Count</th>
+                            <th style="text-align:right;">Avg</th>
+                            <th style="text-align:right;">Success</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in _data.InterviewTypes)
+                        {
+                            <tr>
+                                <td>@t.Type</td>
+                                <td style="text-align:right;">@t.Count</td>
+                                <td style="text-align:right;">@Score(t.AverageScore)</td>
+                                <td style="text-align:right;">@Percent(t.SuccessRate)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+                <div class="d-flex mt-4">
+                    <div class="mr-8">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Interviews / candidate</MudText>
+                        <MudText Typo="Typo.h6">@Score(_data.AverageInterviewsPerCandidate)</MudText>
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Interview success rate</MudText>
+                        <MudText Typo="Typo.h6">@Percent(_data.InterviewSuccessRate)</MudText>
+                    </div>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* -------------------------------------------- Hiring trend & candidates *@
+    <MudGrid Spacing="4" Class="mt-2">
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" GutterBottom="true">Hiring over time</MudText>
+                @if (_hiringLabels.Length > 0)
+                {
+                    <MudChart T="double" ChartType="ChartType.Line" ChartSeries="_hiringSeries" XAxisLabels="_hiringLabels"
+                              Width="100%" Height="300px" ChartOptions="_lineOptions" />
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" GutterBottom="true">Candidates per position</MudText>
+                @{ var maxCpp = _data.CandidatesPerPosition.Count > 0 ? _data.CandidatesPerPosition.Max(x => x.Count) : 0; }
+                @foreach (var item in _data.CandidatesPerPosition)
+                {
+                    <div class="mb-3">
+                        <div class="d-flex">
+                            <MudText Typo="Typo.body2">@item.Label</MudText>
+                            <MudSpacer />
+                            <MudText Typo="Typo.body2">@item.Count</MudText>
+                        </div>
+                        <MudProgressLinear Color="Color.Primary" Rounded="true" Size="Size.Medium"
+                                           Value="@((double)item.Count)" Max="@((double)(maxCpp == 0 ? 1 : maxCpp))" />
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ----------------------------------------------- Reviewer performance *@
+    <MudText Typo="Typo.h5" Class="mt-8 mb-3">Reviewer performance</MudText>
+    <MudPaper Class="pa-2">
+        <MudTable Items="_data.Reviewers" T="ReviewerStat" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<ReviewerStat, object>(x => x.Reviewer))">Reviewer</MudTableSortLabel></MudTh>
+                <MudTh Style="text-align:right;"><MudTableSortLabel SortBy="@(new Func<ReviewerStat, object>(x => x.InterviewsConducted))">Interviews</MudTableSortLabel></MudTh>
+                <MudTh Style="text-align:right;"><MudTableSortLabel SortBy="@(new Func<ReviewerStat, object>(x => x.AverageScore))">Avg score</MudTableSortLabel></MudTh>
+                <MudTh Style="text-align:right;"><MudTableSortLabel SortBy="@(new Func<ReviewerStat, object>(x => x.BiasDelta))">Bias Δ</MudTableSortLabel></MudTh>
+                <MudTh Style="text-align:center;">Flag</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Reviewer">@context.Reviewer</MudTd>
+                <MudTd DataLabel="Interviews" Style="text-align:right;">@context.InterviewsConducted</MudTd>
+                <MudTd DataLabel="Avg score" Style="text-align:right;">@Score(context.AverageScore)</MudTd>
+                <MudTd DataLabel="Bias Δ" Style="text-align:right;">@(context.BiasDelta > 0 ? "+" : string.Empty)@Score(context.BiasDelta)</MudTd>
+                <MudTd DataLabel="Flag" Style="text-align:center;">
+                    @if (Math.Abs(context.BiasDelta) >= 1.0)
+                    {
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled">Possible bias</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Balanced</MudChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+
+    @* ------------------------------------------------- Candidates insights *@
+    <MudText Typo="Typo.h5" Class="mt-8 mb-3">Candidates insights</MudText>
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-2" Style="height:100%;">
+                <MudTable Items="_data.TopCandidates" T="TopCandidate" Filter="FilterCandidate"
+                          Hover="true" Dense="true" Breakpoint="Breakpoint.Sm">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Top candidates</MudText>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="_candidateSearch" Immediate="true" Placeholder="Search"
+                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Margin="Margin.Dense" Class="mt-0" />
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<TopCandidate, object>(x => x.Name))">Candidate</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<TopCandidate, object>(x => x.Position))">Position</MudTableSortLabel></MudTh>
+                        <MudTh Style="text-align:right;"><MudTableSortLabel SortBy="@(new Func<TopCandidate, object>(x => x.FinalScore))" InitialDirection="SortDirection.Descending">Final score</MudTableSortLabel></MudTh>
+                        <MudTh Style="text-align:center;">Status</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Candidate">@context.Name</MudTd>
+                        <MudTd DataLabel="Position">@context.Position</MudTd>
+                        <MudTd DataLabel="Final score" Style="text-align:right;">@Score(context.FinalScore)</MudTd>
+                        <MudTd DataLabel="Status" Style="text-align:center;">
+                            <MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)" Variant="Variant.Text">@context.Status</MudChip>
+                        </MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new[] { 5, 10, 25 }" />
+                    </PagerContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" GutterBottom="true">Recently added</MudText>
+                <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                    <tbody>
+                        @foreach (var c in _data.RecentCandidates)
+                        {
+                            <tr>
+                                <td>
+                                    <MudText Typo="Typo.body2">@c.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@c.Position</MudText>
+                                </td>
+                                <td style="text-align:right;">
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@c.CreatedAt.ToString("MMM d")</MudText>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* -------------------------------------------------- Positions overview *@
+    <MudText Typo="Typo.h5" Class="mt-8 mb-3">Positions overview</MudText>
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-2" Style="height:100%;">
+                <MudTable Items="_data.Positions" T="PositionStat" Filter="FilterPosition"
+                          Hover="true" Dense="true" Breakpoint="Breakpoint.Sm">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Positions</MudText>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="_positionSearch" Immediate="true" Placeholder="Search"
+                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Margin="Margin.Dense" Class="mt-0" />
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<PositionStat, object>(x => x.Position))">Position</MudTableSortLabel></MudTh>
+                        <MudTh Style="text-align:center;">Status</MudTh>
+                        <MudTh Style="text-align:right;"><MudTableSortLabel SortBy="@(new Func<PositionStat, object>(x => x.Applications))">Applications</MudTableSortLabel></MudTh>
+                        <MudTh Style="text-align:right;"><MudTableSortLabel SortBy="@(new Func<PositionStat, object>(x => x.AverageScore))">Avg score</MudTableSortLabel></MudTh>
+                        <MudTh>Top stack</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Position">@context.Position</MudTd>
+                        <MudTd DataLabel="Status" Style="text-align:center;">
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                     Color="@(context.IsOpen ? Color.Success : Color.Default)">
+                                @(context.IsOpen ? "Open" : "Closed")
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Applications" Style="text-align:right;">@context.Applications</MudTd>
+                        <MudTd DataLabel="Avg score" Style="text-align:right;">@Score(context.AverageScore)</MudTd>
+                        <MudTd DataLabel="Top stack">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">@context.TopStack</MudChip>
+                        </MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new[] { 5, 10, 25 }" />
+                    </PagerContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" GutterBottom="true">Most demanding stacks</MudText>
+                @{ var maxStack = _data.DemandingStacks.Count > 0 ? _data.DemandingStacks.Max(x => x.Applications) : 0; }
+                @foreach (var stack in _data.DemandingStacks)
+                {
+                    <div class="mb-3">
+                        <div class="d-flex">
+                            <MudText Typo="Typo.body2">@stack.Stack</MudText>
+                            <MudSpacer />
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@stack.OpenPositions open · @stack.Applications apps</MudText>
+                        </div>
+                        <MudProgressLinear Color="Color.Secondary" Rounded="true" Size="Size.Medium"
+                                           Value="@((double)stack.Applications)" Max="@((double)(maxStack == 0 ? 1 : maxStack))" />
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ------------------------------------------------ Questions & evaluation *@
+    <MudText Typo="Typo.h5" Class="mt-8 mb-3">Questions &amp; evaluation</MudText>
+    <MudPaper Class="pa-2">
+        <MudTable Items="_data.Questions" T="QuestionStat" Filter="FilterQuestion"
+                  Hover="true" Dense="true" Breakpoint="Breakpoint.Sm">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Question insights</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_questionSearch" Immediate="true" Placeholder="Search"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Margin="Margin.Dense" Class="mt-0" />
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<QuestionStat, object>(x => x.Question))">Question</MudTableSortLabel></MudTh>
+                <MudTh Style="text-align:right;"><MudTableSortLabel SortBy="@(new Func<QuestionStat, object>(x => x.TimesUsed))" InitialDirection="SortDirection.Descending">Times used</MudTableSortLabel></MudTh>
+                <MudTh Style="text-align:right;"><MudTableSortLabel SortBy="@(new Func<QuestionStat, object>(x => x.AverageScore))">Avg score</MudTableSortLabel></MudTh>
+                <MudTh Style="text-align:center;">Difficulty</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Question">@context.Question</MudTd>
+                <MudTd DataLabel="Times used" Style="text-align:right;">@context.TimesUsed</MudTd>
+                <MudTd DataLabel="Avg score" Style="text-align:right;">@Score(context.AverageScore)</MudTd>
+                <MudTd DataLabel="Difficulty" Style="text-align:center;">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                             Color="@(context.IsDifficult ? Color.Error : Color.Success)">
+                        @(context.IsDifficult ? "Hard" : "OK")
+                    </MudChip>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 5, 10, 25 }" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+
+    @* -------------------------------------------------------- Time metrics *@
+    <MudText Typo="Typo.h5" Class="mt-8 mb-3">Time metrics</MudText>
+    <MudGrid Spacing="4">
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Title="Avg hiring time" Value="@($"{Score(_data.TimeMetrics.AverageHiringDays)} d")"
+                     Icon="@Icons.Material.Filled.Timer" Color="Color.Primary"
+                     Subtitle="started_at → finished_at" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Title="Interview turnaround" Value="@($"{Score(_data.TimeMetrics.InterviewTurnaroundHours)} h")"
+                     Icon="@Icons.Material.Filled.Speed" Color="Color.Info"
+                     Subtitle="Schedule → review" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" GutterBottom="true">Average time per stage</MudText>
+                @{ var maxStage = _data.TimeMetrics.StageDurations.Count > 0 ? _data.TimeMetrics.StageDurations.Max(x => x.AverageDays) : 0; }
+                @foreach (var stage in _data.TimeMetrics.StageDurations)
+                {
+                    <div class="mb-3">
+                        <div class="d-flex">
+                            <MudText Typo="Typo.body2">@stage.Stage</MudText>
+                            <MudSpacer />
+                            <MudText Typo="Typo.body2">@Score(stage.AverageDays) d</MudText>
+                        </div>
+                        <MudProgressLinear Color="Color.Tertiary" Rounded="true" Size="Size.Medium"
+                                           Value="@stage.AverageDays" Max="@(maxStage == 0 ? 1 : maxStage)" />
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+else
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+        Unable to load the dashboard. Please try again.
+    </MudAlert>
+}
+
+</div>
 
 @code {
-    private int currentCount = 0;
+    private bool _loading = true;
+    private bool _usingSampleData;
+    private DashboardData? _data;
+    private string? _selectedKpi;
 
-    private void IncrementCount()
+    // Filters
+    private DateRange? _dateRange;
+    private int? _selectedPositionId;
+    private string? _selectedInterviewType;
+
+    private IReadOnlyList<PositionStat> _positionOptions = [];
+    private IReadOnlyList<string> _interviewTypeOptions = [];
+
+    // Table search terms
+    private string _candidateSearch = string.Empty;
+    private string _positionSearch = string.Empty;
+    private string _questionSearch = string.Empty;
+
+    // Chart data
+    private double[] _statusData = [];
+    private string[] _statusLabels = [];
+    private List<ChartSeries<double>> _interviewSeries = [];
+    private string[] _interviewLabels = [];
+    private List<ChartSeries<double>> _hiringSeries = [];
+    private string[] _hiringLabels = [];
+
+    private static readonly string[] Palette =
+    [
+        "#0058AB", "#12B76A", "#FE8D00", "#FF5135", "#7E6FFF", "#00B8D9", "#F4B400", "#9C27B0"
+    ];
+
+    private readonly ChartOptions _barOptions = new() { ChartPalette = Palette };
+    private readonly ChartOptions _donutOptions = new() { ChartPalette = Palette };
+    private readonly ChartOptions _lineOptions = new() { ChartPalette = Palette };
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
     {
-        currentCount++;
+        _loading = true;
+        StateHasChanged();
+
+        var filter = new DashboardFilter
+        {
+            From = _dateRange?.Start,
+            To = _dateRange?.End,
+            PositionId = _selectedPositionId,
+            InterviewType = _selectedInterviewType
+        };
+
+        var result = await DashboardApi.GetOverviewAsync(filter);
+
+        if (result is { Success: true, Data: not null })
+        {
+            _data = result.Data;
+            _usingSampleData = false;
+        }
+        else
+        {
+            // Graceful fallback so the dashboard stays demonstrable while the
+            // aggregated endpoint is not yet implemented by the API.
+            _data = DashboardSampleData.Build();
+            _usingSampleData = true;
+        }
+
+        BuildDerivedData();
+        _loading = false;
     }
+
+    private void BuildDerivedData()
+    {
+        if (_data is null)
+        {
+            return;
+        }
+
+        _statusData = _data.StatusDistribution.Select(s => (double)s.Count).ToArray();
+        _statusLabels = _data.StatusDistribution.Select(s => s.Status).ToArray();
+
+        _interviewLabels = _data.InterviewTypes.Select(t => t.Type).ToArray();
+        _interviewSeries =
+        [
+            new ChartSeries<double> { Name = "Interviews", Data = _data.InterviewTypes.Select(t => (double)t.Count).ToArray() }
+        ];
+
+        _hiringLabels = _data.HiringOverTime.Select(p => p.Period).ToArray();
+        _hiringSeries =
+        [
+            new ChartSeries<double> { Name = "Applications", Data = _data.HiringOverTime.Select(p => (double)p.Applications).ToArray() },
+            new ChartSeries<double> { Name = "Hires", Data = _data.HiringOverTime.Select(p => (double)p.Hires).ToArray() }
+        ];
+
+        _positionOptions = _data.Positions;
+        _interviewTypeOptions = _data.InterviewTypes.Select(t => t.Type).ToList();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _dateRange = null;
+        _selectedPositionId = null;
+        _selectedInterviewType = null;
+        await ReloadAsync();
+    }
+
+    private void SelectKpi(string key) => _selectedKpi = _selectedKpi == key ? null : key;
+
+    private string DrillTitle() => _selectedKpi switch
+    {
+        "candidates" => "Recently added candidates",
+        "applications" => "Applications by stage",
+        "score" => "Top candidates by final score",
+        _ => "Details"
+    };
+
+    private bool FilterCandidate(TopCandidate c) =>
+        string.IsNullOrWhiteSpace(_candidateSearch)
+        || c.Name.Contains(_candidateSearch, StringComparison.OrdinalIgnoreCase)
+        || c.Position.Contains(_candidateSearch, StringComparison.OrdinalIgnoreCase);
+
+    private bool FilterPosition(PositionStat p) =>
+        string.IsNullOrWhiteSpace(_positionSearch)
+        || p.Position.Contains(_positionSearch, StringComparison.OrdinalIgnoreCase)
+        || p.TopStack.Contains(_positionSearch, StringComparison.OrdinalIgnoreCase);
+
+    private bool FilterQuestion(QuestionStat q) =>
+        string.IsNullOrWhiteSpace(_questionSearch)
+        || q.Question.Contains(_questionSearch, StringComparison.OrdinalIgnoreCase);
+
+    private static Severity MapSeverity(string severity) => severity?.ToLowerInvariant() switch
+    {
+        "error" => Severity.Error,
+        "warning" => Severity.Warning,
+        "success" => Severity.Success,
+        _ => Severity.Info
+    };
+
+    private static Color StatusColor(string status) => status?.ToLowerInvariant() switch
+    {
+        "hired" or "offer" or "approved" => Color.Success,
+        "rejected" => Color.Error,
+        "in interview" => Color.Info,
+        _ => Color.Default
+    };
+
+    private static string Score(double value) => value.ToString("0.0", CultureInfo.InvariantCulture);
+
+    private static string Percent(double value) => value.ToString("0.#", CultureInfo.InvariantCulture) + "%";
 }

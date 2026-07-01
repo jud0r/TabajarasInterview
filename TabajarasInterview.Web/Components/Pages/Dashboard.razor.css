@@ -1,0 +1,42 @@
+/* Page-scoped styling for the recruitment dashboard.
+   Global, reusable rules (KPI hover/selection, funnel bar) live in app.css so
+   they reach child-component internals; these rules only refine this page's layout. */
+
+.recruitment-dashboard {
+    padding-bottom: 2rem;
+}
+
+/* Give every analytics panel a consistent, slightly raised surface and let the
+   inner content stretch so cards in the same row align to equal heights. */
+.recruitment-dashboard ::deep .mud-paper {
+    border-radius: 12px;
+}
+
+/* Section headings get a subtle accent rule so the page reads as distinct blocks. */
+.recruitment-dashboard ::deep .mud-typography-h5 {
+    position: relative;
+    padding-left: 0.75rem;
+}
+
+.recruitment-dashboard ::deep .mud-typography-h5::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.15em;
+    bottom: 0.15em;
+    width: 4px;
+    border-radius: 2px;
+    background: var(--mud-palette-primary);
+}
+
+/* Keep data tables comfortable to scan on smaller screens. */
+.recruitment-dashboard ::deep .mud-table-cell {
+    white-space: nowrap;
+}
+
+/* Compact the filter toolbar on narrow viewports so controls wrap cleanly. */
+@media (max-width: 960px) {
+    .recruitment-dashboard ::deep .mud-input-control {
+        min-width: 0;
+    }
+}
