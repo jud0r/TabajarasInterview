@@ -1,0 +1,141 @@
+@namespace TabajarasInterview.Web.Components.Shared.CandidateProfile
+@using System.Globalization
+
+@*
+    Score analytics for the candidate. Charts reuse the same MudChart conventions
+    and theme palette as the recruitment dashboard. Every section handles the
+    "no data yet" case with an empty state so the tab is never blank/broken.
+*@
+
+@if (!HasAnyScore)
+{
+    <EmptyState Icon="@Icons.Material.Filled.QueryStats"
+                Title="No scores yet"
+                Description="Scores will appear here once interviews are completed or applications are finalized." />
+}
+else
+{
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" GutterBottom="true">Final score per application</MudText>
+                @if (_finalLabels.Length > 0)
+                {
+                    <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="_finalSeries" ChartLabels="_finalLabels"
+                              Width="100%" Height="300px" ChartOptions="_barOptions" />
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">No finalized applications with a score.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" GutterBottom="true">Interview score trend</MudText>
+                @if (_trendLabels.Length > 1)
+                {
+                    <MudChart T="double" ChartType="ChartType.Line" ChartSeries="_trendSeries" ChartLabels="_trendLabels"
+                              Width="100%" Height="300px" ChartOptions="_lineOptions" />
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Need at least two scored interviews to show a trend.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" GutterBottom="true">Average score by interview type</MudText>
+                @if (_byType.Count > 0)
+                {
+                    foreach (var row in _byType)
+                    {
+                        <div class="mb-3">
+                            <div class="d-flex align-center">
+                                <MudText Typo="Typo.body2">@row.Type</MudText>
+                                <MudSpacer />
+                                <MudText Typo="Typo.body2">@row.Average.ToString("0.0", CultureInfo.InvariantCulture) / 10</MudText>
+                            </div>
+                            <MudProgressLinear Color="@StatusVisuals.ScoreColor(row.Average)" Rounded="true" Size="Size.Medium"
+                                               Value="@row.Average" Max="10" />
+                        </div>
+                    }
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">No scored interviews yet.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    /// <summary>Applications (with nested interviews) to derive scores from.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<CandidateApplicationResponse> Applications { get; set; } = [];
+
+    private double[] _finalLabelValues = [];
+    private string[] _finalLabels = [];
+    private List<ChartSeries<double>> _finalSeries = [];
+
+    private string[] _trendLabels = [];
+    private List<ChartSeries<double>> _trendSeries = [];
+
+    private List<(string Type, double Average)> _byType = [];
+
+    private bool HasAnyScore => _finalLabels.Length > 0 || _trendLabels.Length > 0 || _byType.Count > 0;
+
+    // Palette taken from the app theme so charts match the brand (mirrors Dashboard).
+    private static readonly Palette ThemePalette = TabajarasTheme.Theme.PaletteLight;
+
+    private static readonly string[] ChartColors =
+    [
+        ThemePalette.Primary.Value,
+        ThemePalette.Tertiary.Value,
+        ThemePalette.Secondary.Value,
+        ThemePalette.Info.Value,
+        ThemePalette.Primary.ColorLighten(0.15).Value,
+        ThemePalette.Tertiary.ColorLighten(0.15).Value
+    ];
+
+    private readonly ChartOptions _barOptions = new() { ChartPalette = ChartColors };
+    private readonly ChartOptions _lineOptions = new() { ChartPalette = ChartColors };
+
+    protected override void OnParametersSet()
+    {
+        var scoredApps = Applications
+            .Where(a => a.FinalScore is not null)
+            .ToList();
+
+        _finalLabels = scoredApps.Select(a => Shorten(a.PositionTitle)).ToArray();
+        _finalLabelValues = scoredApps.Select(a => a.FinalScore!.Value).ToArray();
+        _finalSeries = _finalLabelValues.Length > 0
+            ? [new ChartSeries<double> { Name = "Final score", Data = _finalLabelValues }]
+            : [];
+
+        var scoredInterviews = Applications
+            .SelectMany(a => a.Interviews)
+            .Where(i => i.Score is not null)
+            .OrderBy(i => i.CreatedAt ?? DateTime.MinValue)
+            .ToList();
+
+        _trendLabels = scoredInterviews
+            .Select(i => (i.CreatedAt ?? DateTime.MinValue).ToLocalTime().ToString("MMM d", CultureInfo.InvariantCulture))
+            .ToArray();
+        _trendSeries = scoredInterviews.Count > 0
+            ? [new ChartSeries<double> { Name = "Interview score", Data = scoredInterviews.Select(i => i.Score!.Value).ToArray() }]
+            : [];
+
+        _byType = scoredInterviews
+            .GroupBy(i => string.IsNullOrWhiteSpace(i.Type) ? "Other" : i.Type!)
+            .Select(g => (Type: g.Key, Average: g.Average(i => i.Score!.Value)))
+            .OrderByDescending(x => x.Average)
+            .ToList();
+    }
+
+    private static string Shorten(string value) =>
+        value.Length <= 18 ? value : value[..17] + "…";
+}

@@ -1,4 +1,5 @@
 using TabajarasInterview.Web.DTOs;
+using TabajarasInterview.Web.DTOs.Candidate;
 using TabajarasInterview.Web.Models;
 
 namespace TabajarasInterview.Web.Services.Api
@@ -23,5 +24,19 @@ namespace TabajarasInterview.Web.Services.Api
 
         /// <summary>Soft-deletes a candidate (<c>DELETE /api/candidates/{id}</c>).</summary>
         Task<ApiResult> DeleteCandidateAsync(int id, CancellationToken ct = default);
+
+        /// <summary>
+        /// Lists the candidate's applications/positions with nested interviews, reviewers,
+        /// questions and stacks (<c>GET /api/candidates/{id}/positions</c>). The API is
+        /// expected to back this endpoint with the <c>get_candidate_positions(candidate_id)</c>
+        /// data source.
+        /// </summary>
+        Task<ApiResult<List<CandidateApplicationResponse>>> GetCandidatePositionsAsync(int candidateId, CancellationToken ct = default);
+
+        /// <summary>
+        /// Fetches the candidate's recruitment timeline
+        /// (<c>GET /api/candidates/{id}/timeline</c>).
+        /// </summary>
+        Task<ApiResult<List<TimelineEvent>>> GetCandidateTimelineAsync(int candidateId, CancellationToken ct = default);
     }
 }

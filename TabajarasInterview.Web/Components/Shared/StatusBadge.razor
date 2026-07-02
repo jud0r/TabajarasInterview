@@ -1,0 +1,34 @@
+@*
+    Flexible status pill. Maps any application / interview / position status to a
+    themed color + icon via StatusVisuals, falling back to a neutral chip for
+    unknown values so the badge is always safe to render.
+*@
+
+<MudChip T="string"
+         Color="@_visual.Color"
+         Icon="@(ShowIcon ? _visual.Icon : null)"
+         Size="@Size"
+         Variant="@Variant"
+         Class="@Class">
+    @(string.IsNullOrWhiteSpace(Text) ? StatusVisuals.Label(Status) : Text)
+</MudChip>
+
+@code {
+    /// <summary>Raw status value from the API (may be null/unknown).</summary>
+    [Parameter] public string? Status { get; set; }
+
+    /// <summary>Optional label override; defaults to a friendly form of <see cref="Status"/>.</summary>
+    [Parameter] public string? Text { get; set; }
+
+    [Parameter] public Size Size { get; set; } = Size.Small;
+
+    [Parameter] public Variant Variant { get; set; } = Variant.Filled;
+
+    [Parameter] public bool ShowIcon { get; set; } = true;
+
+    [Parameter] public string? Class { get; set; }
+
+    private (Color Color, string Icon) _visual;
+
+    protected override void OnParametersSet() => _visual = StatusVisuals.For(Status);
+}

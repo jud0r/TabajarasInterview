@@ -1,0 +1,170 @@
+@namespace TabajarasInterview.Web.Components.Shared.CandidateProfile
+@using System.Globalization
+
+@*
+    All reviewer feedback related to the candidate's interviews, flattened from the
+    applications payload. Highlights very-positive feedback, low scores and
+    interviews still missing a reviewer, with quick filter chips.
+*@
+
+@if (_rows.Count == 0)
+{
+    <EmptyState Icon="@Icons.Material.Filled.RateReview"
+                Title="No reviewer feedback"
+                Description="Reviewer feedback will appear here once interviews have been reviewed." />
+}
+else
+{
+    <div class="d-flex flex-wrap align-center mb-3" style="gap:.5rem;">
+        <MudChip T="string" Variant="@ChipVariant(FeedbackFilter.All)" Color="Color.Default"
+                 OnClick="@(() => SetFilter(FeedbackFilter.All))">All (@_rows.Count)</MudChip>
+        <MudChip T="string" Variant="@ChipVariant(FeedbackFilter.Positive)" Color="Color.Success"
+                 Icon="@Icons.Material.Filled.ThumbUp" OnClick="@(() => SetFilter(FeedbackFilter.Positive))">
+            Very positive (@_positiveCount)
+        </MudChip>
+        <MudChip T="string" Variant="@ChipVariant(FeedbackFilter.Low)" Color="Color.Error"
+                 Icon="@Icons.Material.Filled.TrendingDown" OnClick="@(() => SetFilter(FeedbackFilter.Low))">
+            Low scores (@_lowCount)
+        </MudChip>
+        <MudChip T="string" Variant="@ChipVariant(FeedbackFilter.Missing)" Color="Color.Warning"
+                 Icon="@Icons.Material.Filled.HelpOutline" OnClick="@(() => SetFilter(FeedbackFilter.Missing))">
+            Missing (@_missingCount)
+        </MudChip>
+    </div>
+
+    @if (Visible.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.FilterAltOff"
+                    Title="Nothing to show"
+                    Description="No feedback matches the selected filter." />
+    }
+    else
+    {
+        foreach (var row in Visible)
+        {
+            <MudPaper Elevation="0" Class="pa-3 mb-2" Style="@RowStyle(row)">
+                <div class="d-flex flex-wrap align-center" style="gap:.5rem;">
+                    <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle2">@(row.IsMissing ? "Awaiting reviewer" : row.ReviewerName)</MudText>
+                    <MudSpacer />
+                    @if (row.Score is { } score)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="@StatusVisuals.ScoreColor(score)" Variant="Variant.Filled"
+                                 Icon="@Icons.Material.Filled.Star">@score.ToString("0.0", CultureInfo.InvariantCulture)</MudChip>
+                    }
+                    else if (row.IsMissing)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">No score</MudChip>
+                    }
+                </div>
+
+                <div class="d-flex flex-wrap mt-1" style="gap:.35rem;">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                             Icon="@Icons.Material.Filled.Work">@row.Position</MudChip>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Tertiary"
+                             Icon="@Icons.Material.Filled.RecordVoiceOver">@row.Interview</MudChip>
+                    @if (row.ReviewedAt is { } reviewed)
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-flex align-center ml-1">
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Class="mr-1" />
+                            @reviewed.ToLocalTime().ToString("MMM d, yyyy")
+                        </MudText>
+                    }
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(row.Comments))
+                {
+                    <MudText Typo="Typo.body2" Class="mt-2">@row.Comments</MudText>
+                }
+                else if (row.IsMissing)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-2 mud-text-secondary">This interview has no reviewer feedback yet.</MudText>
+                }
+            </MudPaper>
+        }
+    }
+}
+
+@code {
+    /// <summary>Applications whose interviews' reviewers are flattened into feedback rows.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<CandidateApplicationResponse> Applications { get; set; } = [];
+
+    private sealed record FeedbackRow(
+        string ReviewerName, string Interview, string Position,
+        double? Score, string? Comments, DateTime? ReviewedAt, bool IsMissing);
+
+    private List<FeedbackRow> _rows = [];
+    private FeedbackFilter _filter = FeedbackFilter.All;
+    private int _positiveCount;
+    private int _lowCount;
+    private int _missingCount;
+
+    private const double PositiveThreshold = 8.0;
+    private const double LowThreshold = 5.0;
+
+    protected override void OnParametersSet()
+    {
+        _rows = [];
+
+        foreach (var app in Applications)
+        {
+            foreach (var interview in app.Interviews)
+            {
+                if (interview.Reviewers.Count == 0)
+                {
+                    _rows.Add(new FeedbackRow("—", DisplayName(interview), app.PositionTitle, null, null, null, IsMissing: true));
+                    continue;
+                }
+
+                foreach (var reviewer in interview.Reviewers)
+                {
+                    _rows.Add(new FeedbackRow(
+                        string.IsNullOrWhiteSpace(reviewer.ReviewerName) ? "Unknown reviewer" : reviewer.ReviewerName,
+                        DisplayName(interview),
+                        app.PositionTitle,
+                        reviewer.Score,
+                        reviewer.Comments,
+                        reviewer.ReviewedAt,
+                        reviewer.IsMissing));
+                }
+            }
+        }
+
+        _positiveCount = _rows.Count(r => r.Score >= PositiveThreshold);
+        _lowCount = _rows.Count(r => r.Score is { } s && s < LowThreshold);
+        _missingCount = _rows.Count(r => r.IsMissing);
+    }
+
+    private List<FeedbackRow> Visible => _filter switch
+    {
+        FeedbackFilter.Positive => _rows.Where(r => r.Score >= PositiveThreshold).ToList(),
+        FeedbackFilter.Low => _rows.Where(r => r.Score is { } and < LowThreshold).ToList(),
+        FeedbackFilter.Missing => _rows.Where(r => r.IsMissing).ToList(),
+        _ => _rows
+            .OrderByDescending(r => r.ReviewedAt ?? DateTime.MinValue)
+            .ToList()
+    };
+
+    private void SetFilter(FeedbackFilter filter) => _filter = filter;
+
+    private Variant ChipVariant(FeedbackFilter filter) =>
+        _filter == filter ? Variant.Filled : Variant.Outlined;
+
+    private string RowStyle(FeedbackRow row)
+    {
+        var color = row.IsMissing
+            ? "var(--mud-palette-warning)"
+            : row.Score >= PositiveThreshold
+                ? "var(--mud-palette-success)"
+                : row.Score is { } and < LowThreshold
+                    ? "var(--mud-palette-error)"
+                    : "var(--mud-palette-lines-default)";
+
+        return $"border: 1px solid {color}; border-left: 4px solid {color}; border-radius: 8px;";
+    }
+
+    private static string DisplayName(InterviewResponse interview) =>
+        string.IsNullOrWhiteSpace(interview.Name)
+            ? (string.IsNullOrWhiteSpace(interview.Type) ? "Interview" : $"{interview.Type} interview")
+            : interview.Name;
+}

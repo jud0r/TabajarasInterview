@@ -1,22 +1,21 @@
-@page "/candidates"
+@page "/stacks"
 @attribute [Authorize]
 @implements IDisposable
-@inject ICandidateApiService CandidateApi
+@inject IStackApiService StackApi
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
-@inject NavigationManager Navigation
 
-<PageTitle>Candidates</PageTitle>
+<PageTitle>Stacks</PageTitle>
 
 <div class="d-flex flex-wrap align-center mb-4">
     <div class="flex-grow-1 mr-4">
-        <MudText Typo="Typo.h4">Candidates</MudText>
-        <MudText Typo="Typo.body2" Class="mud-text-secondary">Manage candidate records</MudText>
+        <MudText Typo="Typo.h4">Stacks</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Manage the technologies and skills used across candidates, interviews, and templates</MudText>
     </div>
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
         <MudTextField @bind-Value="_searchString"
                       Immediate="true"
-                      Placeholder="Search name or email"
+                      Placeholder="Search by name"
                       Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search"
                       IconSize="Size.Medium"
@@ -31,7 +30,7 @@
                    Color="Color.Primary"
                    Variant="Variant.Filled"
                    OnClick="OpenCreateDialogAsync">
-            Add candidate
+            Add stack
         </MudButton>
     </MudStack>
 </div>
@@ -44,8 +43,8 @@
     </MudAlert>
 }
 
-<MudTable T="CandidateResponse"
-          Items="_candidates"
+<MudTable T="StackResponse"
+          Items="_stacks"
           Filter="FilterFunc"
           Loading="_loading"
           LoadingProgressColor="Color.Primary"
@@ -54,33 +53,46 @@
           Elevation="2"
           AllowUnsorted="false">
     <ToolBarContent>
-        <MudText Typo="Typo.subtitle1">@FilteredCount candidate(s)</MudText>
+        <MudText Typo="Typo.subtitle1">@FilteredCount stack(s)</MudText>
     </ToolBarContent>
     <HeaderContent>
         <MudTh>
-            <MudTableSortLabel SortBy="new Func<CandidateResponse, object>(x => x.FullName)"
+            <MudTableSortLabel SortBy="new Func<StackResponse, object>(x => x.Name)"
                                InitialDirection="SortDirection.Ascending">
                 Name
             </MudTableSortLabel>
         </MudTh>
-        <MudTh>Email</MudTh>
-        <MudTh>Phone</MudTh>
+        <MudTh>Description</MudTh>
         <MudTh>
-            <MudTableSortLabel SortBy="new Func<CandidateResponse, object>(x => x.CreatedAt)">
-                Added
+            <MudTableSortLabel SortBy="new Func<StackResponse, object>(x => x.CreatedAt)">
+                Created Date
             </MudTableSortLabel>
         </MudTh>
         <MudTh Style="text-align:right;">Actions</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Name">@context.FullName</MudTd>
-        <MudTd DataLabel="Email">@context.Email</MudTd>
-        <MudTd DataLabel="Phone">@(string.IsNullOrWhiteSpace(context.Phone) ? "—" : context.Phone)</MudTd>
-        <MudTd DataLabel="Added">@context.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</MudTd>
+        <MudTd DataLabel="Name">
+            <MudText Typo="Typo.body1" Class="font-weight-medium">@context.Name</MudText>
+        </MudTd>
+        <MudTd DataLabel="Description">
+            @if (string.IsNullOrWhiteSpace(context.Description))
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">—</MudText>
+            }
+            else
+            {
+                <MudTooltip Text="@context.Description">
+                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:360px;display:inline-block;">
+                        @context.Description
+                    </MudText>
+                </MudTooltip>
+            }
+        </MudTd>
+        <MudTd DataLabel="Created Date">@context.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</MudTd>
         <MudTd DataLabel="Actions" Style="text-align:right;">
-            <MudTooltip Text="View profile">
+            <MudTooltip Text="View details">
                 <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
-                               OnClick="@(() => ViewProfile(context))" />
+                               OnClick="@(() => OpenDetailsAsync(context))" />
             </MudTooltip>
             <MudTooltip Text="Edit">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
@@ -94,24 +106,24 @@
     </RowTemplate>
     <NoRecordsContent>
         <div class="d-flex flex-column align-center py-8">
-            <MudIcon Icon="@Icons.Material.Filled.PeopleOutline" Size="Size.Large" Class="mb-2 mud-text-secondary" />
-            <MudText Typo="Typo.subtitle1">No candidates found</MudText>
+            <MudIcon Icon="@Icons.Material.Filled.Layers" Size="Size.Large" Class="mb-2 mud-text-secondary" />
+            <MudText Typo="Typo.subtitle1">No stacks found</MudText>
             <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
                 @(string.IsNullOrWhiteSpace(_searchString)
-                    ? "Add your first candidate to get started."
+                    ? "Add your first stack to get started."
                     : "Try adjusting your search.")
             </MudText>
             @if (string.IsNullOrWhiteSpace(_searchString))
             {
                 <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
                            Variant="Variant.Filled" OnClick="OpenCreateDialogAsync">
-                    Add candidate
+                    Add stack
                 </MudButton>
             }
         </div>
     </NoRecordsContent>
     <LoadingContent>
-        <MudText>Loading candidates...</MudText>
+        <MudText>Loading stacks...</MudText>
     </LoadingContent>
     <PagerContent>
         <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
@@ -119,13 +131,13 @@
 </MudTable>
 
 @code {
-    private List<CandidateResponse> _candidates = [];
+    private List<StackResponse> _stacks = [];
     private bool _loading = true;
     private string? _error;
     private string _searchString = string.Empty;
     private CancellationTokenSource? _cts;
 
-    private int FilteredCount => _candidates.Count(FilterFunc);
+    private int FilteredCount => _stacks.Count(FilterFunc);
 
     protected override async Task OnInitializedAsync()
     {
@@ -143,15 +155,15 @@
 
         try
         {
-            var result = await CandidateApi.GetCandidatesAsync(token);
+            var result = await StackApi.GetStacksAsync(token);
             if (result is { Success: true, Data: not null })
             {
-                _candidates = result.Data;
+                _stacks = result.Data;
             }
             else
             {
-                _error = result.ErrorMessage ?? "Could not load candidates.";
-                _candidates = [];
+                _error = result.ErrorMessage ?? "Could not load stacks.";
+                _stacks = [];
             }
         }
         catch (OperationCanceledException)
@@ -161,7 +173,7 @@
         catch (Exception ex)
         {
             _error = $"Unexpected error: {ex.Message}";
-            _candidates = [];
+            _stacks = [];
         }
         finally
         {
@@ -171,21 +183,20 @@
 
     private Task ReloadAsync() => LoadAsync();
 
-    private bool FilterFunc(CandidateResponse candidate)
+    private bool FilterFunc(StackResponse stack)
     {
         if (string.IsNullOrWhiteSpace(_searchString))
         {
             return true;
         }
 
-        return candidate.FullName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
-            || candidate.Email.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+        return stack.Name.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task OpenCreateDialogAsync()
     {
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<CandidateDialog>("Add candidate", options);
+        var dialog = await DialogService.ShowAsync<StackDialog>("Add stack", options);
         var result = await dialog.Result;
 
         if (result is { Canceled: false })
@@ -194,14 +205,29 @@
         }
     }
 
-    private async Task OpenEditDialogAsync(CandidateResponse candidate)
+    private async Task OpenDetailsAsync(StackResponse stack)
     {
-        var parameters = new DialogParameters<CandidateDialog>
+        // Exercise GET /api/stacks/get/{id} so the details reflect the freshest server state.
+        var detailResult = await StackApi.GetStackByIdAsync(stack.Id);
+        var detail = detailResult is { Success: true, Data: not null } ? detailResult.Data : stack;
+
+        var parameters = new DialogParameters<StackDialog>
         {
-            { x => x.Candidate, candidate }
+            { x => x.Stack, detail },
+            { x => x.ReadOnly, true }
         };
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<CandidateDialog>("Edit candidate", parameters, options);
+        await DialogService.ShowAsync<StackDialog>("Stack details", parameters, options);
+    }
+
+    private async Task OpenEditDialogAsync(StackResponse stack)
+    {
+        var parameters = new DialogParameters<StackDialog>
+        {
+            { x => x.Stack, stack }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<StackDialog>("Edit stack", parameters, options);
         var result = await dialog.Result;
 
         if (result is { Canceled: false })
@@ -210,14 +236,11 @@
         }
     }
 
-    private void ViewProfile(CandidateResponse candidate) =>
-        Navigation.NavigateTo($"/candidates/{candidate.Id}");
-
-    private async Task ConfirmDeleteAsync(CandidateResponse candidate)
+    private async Task ConfirmDeleteAsync(StackResponse stack)
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(
-            "Delete candidate",
-            $"Are you sure you want to delete \"{candidate.FullName}\"? This performs a soft delete on the server.",
+            "Delete stack",
+            $"Are you sure you want to delete \"{stack.Name}\"? This performs a soft delete on the server.",
             yesText: "Delete",
             cancelText: "Cancel");
 
@@ -226,15 +249,15 @@
             return;
         }
 
-        var result = await CandidateApi.DeleteCandidateAsync(candidate.Id);
+        var result = await StackApi.DeleteStackAsync(stack.Id);
         if (result.Success)
         {
-            Snackbar.Add("Candidate deleted.", Severity.Success);
+            Snackbar.Add("Stack deleted.", Severity.Success);
             await LoadAsync();
         }
         else
         {
-            Snackbar.Add(result.ErrorMessage ?? "Could not delete the candidate.", Severity.Error);
+            Snackbar.Add(result.ErrorMessage ?? "Could not delete the stack.", Severity.Error);
         }
     }
 

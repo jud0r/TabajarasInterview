@@ -1,0 +1,59 @@
+@namespace TabajarasInterview.Web.Components.Shared.CandidateProfile
+@using System.Globalization
+
+@*
+    Candidate KPI cards. Reuses the shared KpiCard so the visual language matches
+    the recruitment dashboard. Colors carry status meaning (success/warning/error).
+*@
+
+<MudGrid Spacing="4">
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Title="Total applications" Value="@Stats.TotalApplications.ToString("N0")"
+                 Icon="@Icons.Material.Filled.Assignment" Color="Color.Primary"
+                 Subtitle="All positions applied to" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Title="Active applications" Value="@Stats.ActiveApplications.ToString("N0")"
+                 Icon="@Icons.Material.Filled.HourglassTop" Color="Color.Info"
+                 Subtitle="Open in the pipeline" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Title="Completed" Value="@Stats.CompletedApplications.ToString("N0")"
+                 Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success"
+                 Subtitle="Closed successfully" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Title="Rejected / withdrawn" Value="@Stats.RejectedApplications.ToString("N0")"
+                 Icon="@Icons.Material.Filled.Cancel" Color="Color.Error"
+                 Subtitle="Not moving forward" />
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Title="Avg final score" Value="@Score(Stats.AverageFinalScore)"
+                 Icon="@Icons.Material.Filled.Star" Color="Color.Tertiary"
+                 Subtitle="Across scored applications" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Title="Avg interview score" Value="@Score(Stats.AverageInterviewScore)"
+                 Icon="@Icons.Material.Filled.Grading" Color="Color.Tertiary"
+                 Subtitle="Across scored interviews" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Title="Interviews completed" Value="@Stats.InterviewsCompleted.ToString("N0")"
+                 Icon="@Icons.Material.Filled.EventAvailable" Color="Color.Success"
+                 Subtitle="Finished rounds" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Title="Pending interviews" Value="@Stats.PendingInterviews.ToString("N0")"
+                 Icon="@Icons.Material.Filled.PendingActions" Color="Color.Warning"
+                 Subtitle="Scheduled or in progress" />
+    </MudItem>
+</MudGrid>
+
+@code {
+    /// <summary>Pre-computed KPI figures for the candidate.</summary>
+    [Parameter, EditorRequired] public CandidateProfileStats Stats { get; set; } = default!;
+
+    private static string Score(double? value) =>
+        value is { } v ? v.ToString("0.0", CultureInfo.InvariantCulture) : "—";
+}

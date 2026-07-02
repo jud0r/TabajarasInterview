@@ -1,0 +1,196 @@
+@namespace TabajarasInterview.Web.Components.Shared.CandidateProfile
+@using System.Globalization
+
+@*
+    One application/position the candidate applied to. Collapsed it shows a compact
+    summary (badges, stacks, score); expanded it reveals the full application detail
+    grid and every associated interview with interviewer, score, comments, dates and
+    reviewer feedback. Safe against missing optional fields.
+*@
+
+<MudPaper Elevation="1" Class="rounded-lg mb-3">
+    <div class="pa-4 d-flex flex-wrap align-center" style="gap: 1rem; cursor: pointer;"
+         role="button" tabindex="0" @onclick="Toggle" @onkeydown="OnKeyDown">
+        <MudIcon Icon="@Icons.Material.Filled.Work" Color="Color.Primary" />
+
+        <div class="flex-grow-1" style="min-width: 220px;">
+            <div class="d-flex align-center flex-wrap" style="gap: .5rem;">
+                <MudText Typo="Typo.h6">@Application.PositionTitle</MudText>
+                <StatusBadge Status="@Application.Status" />
+                @if (!string.IsNullOrWhiteSpace(Application.PositionStatus))
+                {
+                    <StatusBadge Status="@Application.PositionStatus" Variant="Variant.Outlined" ShowIcon="false"
+                                 Text="@($"Position: {Application.PositionStatus}")" />
+                }
+            </div>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                Started @DateOnly(Application.StartedAt)
+                · @Application.InterviewCount interview@(Application.InterviewCount == 1 ? "" : "s")
+                · Stage: @Application.CurrentStage
+            </MudText>
+        </div>
+
+        @if (Application.FinalScore is { } finalScore)
+        {
+            <MudTooltip Text="Final score">
+                <MudChip T="string" Color="@StatusVisuals.ScoreColor(finalScore)" Variant="Variant.Filled"
+                         Size="Size.Medium" Icon="@Icons.Material.Filled.Star">
+                    @finalScore.ToString("0.0", CultureInfo.InvariantCulture)
+                </MudChip>
+            </MudTooltip>
+        }
+
+        <MudIconButton Icon="@(Expanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                       aria-label="Toggle application details" />
+    </div>
+
+    @if (Application.Stacks.Count > 0)
+    {
+        <div class="px-4 pb-3 d-flex flex-wrap align-center" style="gap:.35rem;">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary mr-1">Stacks:</MudText>
+            @foreach (var stack in Application.Stacks)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info"
+                         Icon="@Icons.Material.Filled.Layers">@stack.Name</MudChip>
+            }
+        </div>
+    }
+
+    <MudCollapse Expanded="Expanded">
+        <MudDivider />
+        <div class="pa-4">
+            <MudText Typo="Typo.overline" Class="mud-text-secondary">Application detail</MudText>
+            <MudGrid Spacing="3" Class="mt-0">
+                <MudItem xs="6" sm="4" md="3">@DetailBlock("Application ID", $"#{Application.Id}")</MudItem>
+                <MudItem xs="6" sm="4" md="3">@DetailBlock("Application status", StatusVisuals.Label(Application.Status))</MudItem>
+                <MudItem xs="6" sm="4" md="3">@DetailBlock("Started", DateOnly(Application.StartedAt))</MudItem>
+                <MudItem xs="6" sm="4" md="3">@DetailBlock("Finished", DateOnly(Application.FinishedAt))</MudItem>
+                <MudItem xs="6" sm="4" md="3">@DetailBlock("Hiring duration", DurationText(Application.HiringDuration))</MudItem>
+                <MudItem xs="6" sm="4" md="3">@DetailBlock("Final score", Application.FinalScore is { } s ? s.ToString("0.0", CultureInfo.InvariantCulture) : "—")</MudItem>
+            </MudGrid>
+
+            @if (!string.IsNullOrWhiteSpace(Application.FinalComments))
+            {
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Dense="true" Class="mt-3" Icon="@Icons.Material.Filled.Notes">
+                    @Application.FinalComments
+                </MudAlert>
+            }
+
+            <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">Interviews</MudText>
+            @if (Application.Interviews.Count == 0)
+            {
+                <EmptyState Icon="@Icons.Material.Filled.EventBusy"
+                            Title="No interviews yet"
+                            Description="This application has not had any interviews scheduled." />
+            }
+            else
+            {
+                foreach (var interview in Application.Interviews.OrderBy(i => i.CreatedAt ?? DateTime.MaxValue))
+                {
+                    <MudPaper Elevation="0" Class="pa-3 mb-2" Style="border: 1px solid var(--mud-palette-lines-default); border-radius: 8px;">
+                        <div class="d-flex flex-wrap align-center" style="gap:.5rem;">
+                            <MudText Typo="Typo.subtitle2">@(string.IsNullOrWhiteSpace(interview.Name) ? "Interview" : interview.Name)</MudText>
+                            @if (!string.IsNullOrWhiteSpace(interview.Type))
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">@interview.Type</MudChip>
+                            }
+                            <StatusBadge Status="@interview.Status" />
+                            <MudSpacer />
+                            @if (interview.Score is { } iscore)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="@StatusVisuals.ScoreColor(iscore)" Variant="Variant.Filled"
+                                         Icon="@Icons.Material.Filled.Star">@iscore.ToString("0.0", CultureInfo.InvariantCulture)</MudChip>
+                            }
+                        </div>
+
+                        <div class="d-flex flex-wrap mt-1 mud-text-secondary" style="gap: 1.25rem;">
+                            <MudText Typo="Typo.caption">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-1" />
+                                @(string.IsNullOrWhiteSpace(interview.InterviewerName) ? "Unassigned" : interview.InterviewerName)
+                            </MudText>
+                            <MudText Typo="Typo.caption">Created @DateTimeText(interview.CreatedAt)</MudText>
+                            <MudText Typo="Typo.caption">Updated @DateTimeText(interview.UpdatedAt)</MudText>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(interview.Comments))
+                        {
+                            <MudText Typo="Typo.body2" Class="mt-2">@interview.Comments</MudText>
+                        }
+
+                        @if (interview.Reviewers.Count > 0)
+                        {
+                            <div class="mt-2">
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">Reviewer feedback</MudText>
+                                @foreach (var reviewer in interview.Reviewers)
+                                {
+                                    <div class="d-flex align-center mt-1" style="gap:.5rem;">
+                                        <MudIcon Icon="@Icons.Material.Filled.RateReview" Size="Size.Small" Color="Color.Tertiary" />
+                                        <MudText Typo="Typo.body2"><strong>@reviewer.ReviewerName</strong></MudText>
+                                        @if (reviewer.Score is { } rscore)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="@StatusVisuals.ScoreColor(rscore)" Variant="Variant.Text">
+                                                @rscore.ToString("0.0", CultureInfo.InvariantCulture)
+                                            </MudChip>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(reviewer.Comments))
+                                        {
+                                            <MudText Typo="Typo.body2" Class="mud-text-secondary">— @reviewer.Comments</MudText>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </MudPaper>
+                }
+            }
+        </div>
+    </MudCollapse>
+</MudPaper>
+
+@code {
+    /// <summary>The application/position to render.</summary>
+    [Parameter, EditorRequired] public CandidateApplicationResponse Application { get; set; } = default!;
+
+    /// <summary>Controls the initial expansion state (two-way bindable).</summary>
+    [Parameter] public bool Expanded { get; set; }
+
+    [Parameter] public EventCallback<bool> ExpandedChanged { get; set; }
+
+    private async Task Toggle()
+    {
+        Expanded = !Expanded;
+        await ExpandedChanged.InvokeAsync(Expanded);
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key is "Enter" or " ")
+        {
+            await Toggle();
+        }
+    }
+
+    private RenderFragment DetailBlock(string label, string value) =>@<div>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@label</MudText>
+        <MudText Typo="Typo.body2">@value</MudText>
+    </div>;
+
+    private static string DateOnly(DateTime? value) =>
+        value is { } v ? v.ToLocalTime().ToString("MMM d, yyyy") : "—";
+
+    private static string DateTimeText(DateTime? value) =>
+        value is { } v ? v.ToLocalTime().ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture) : "—";
+
+    private static string DurationText(TimeSpan? duration)
+    {
+        if (duration is not { } d)
+        {
+            return "—";
+        }
+
+        var days = (int)Math.Round(d.TotalDays);
+        return days >= 1
+            ? $"{days} day{(days == 1 ? "" : "s")}"
+            : $"{Math.Max(1, (int)Math.Round(d.TotalHours))} h";
+    }
+}

@@ -1,0 +1,84 @@
+@namespace TabajarasInterview.Web.Components.Shared.CandidateProfile
+
+@*
+    Chronological recruitment timeline built from TimelineEvent items. Uses
+    MudTimeline; each event maps to a color + icon by its EventType, with an
+    optional status badge and related position/interview chips.
+*@
+
+@if (Events is null || Events.Count == 0)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Timeline"
+                Title="No timeline yet"
+                Description="Recruitment activity will appear here as the candidate progresses." />
+}
+else
+{
+    <MudTimeline TimelinePosition="TimelinePosition.Start" Class="pa-2">
+        @foreach (var e in OrderedEvents)
+        {
+            var visual = VisualFor(e.EventType);
+            <MudTimelineItem Color="@visual.Color" Icon="@visual.Icon" Elevation="1">
+                <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid var(--mud-palette-lines-default); border-radius: 8px;">
+                    <div class="d-flex align-center flex-wrap" style="gap:.5rem;">
+                        <MudText Typo="Typo.subtitle2">@e.Title</MudText>
+                        @if (!string.IsNullOrWhiteSpace(e.Status))
+                        {
+                            <StatusBadge Status="@e.Status" Size="Size.Small" />
+                        }
+                    </div>
+
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @e.Timestamp.ToLocalTime().ToString("MMM d, yyyy · h:mm tt")
+                    </MudText>
+
+                    @if (!string.IsNullOrWhiteSpace(e.Description))
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-1">@e.Description</MudText>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(e.Position) || !string.IsNullOrWhiteSpace(e.Interview))
+                    {
+                        <div class="d-flex flex-wrap mt-2" style="gap:.35rem;">
+                            @if (!string.IsNullOrWhiteSpace(e.Position))
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                         Icon="@Icons.Material.Filled.Work">@e.Position</MudChip>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(e.Interview))
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Tertiary"
+                                         Icon="@Icons.Material.Filled.RecordVoiceOver">@e.Interview</MudChip>
+                            }
+                        </div>
+                    }
+                </MudPaper>
+            </MudTimelineItem>
+        }
+    </MudTimeline>
+}
+
+@code {
+    /// <summary>Timeline events (any order; sorted here for display).</summary>
+    [Parameter] public IReadOnlyList<TimelineEvent>? Events { get; set; }
+
+    /// <summary>When true, the most recent events appear first.</summary>
+    [Parameter] public bool Descending { get; set; } = true;
+
+    private IEnumerable<TimelineEvent> OrderedEvents =>
+        Descending
+            ? Events!.OrderByDescending(e => e.Timestamp)
+            : Events!.OrderBy(e => e.Timestamp);
+
+    private static (Color Color, string Icon) VisualFor(string? eventType) =>
+        (eventType ?? string.Empty).ToLowerInvariant() switch
+        {
+            "candidate_created" => (Color.Info, Icons.Material.Filled.PersonAdd),
+            "application_started" => (Color.Primary, Icons.Material.Filled.PostAdd),
+            "interview_created" or "interview_scheduled" => (Color.Tertiary, Icons.Material.Filled.EventNote),
+            "interview_completed" => (Color.Success, Icons.Material.Filled.EventAvailable),
+            "application_finished" => (Color.Secondary, Icons.Material.Filled.Flag),
+            "final_decision" => (Color.Warning, Icons.Material.Filled.Gavel),
+            _ => (Color.Default, Icons.Material.Filled.Circle)
+        };
+}
