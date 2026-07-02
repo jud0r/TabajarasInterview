@@ -1,0 +1,41 @@
+@*
+    Reusable error-state placeholder with an optional retry action. Keeps the raw
+    error message in a secondary line so recruiters see a friendly headline while
+    the detail remains available for debugging.
+*@
+
+<MudPaper Elevation="0" Class="@($"pa-6 {Class}")" Style="border: 1px solid var(--mud-palette-error); border-radius: 8px;">
+    <div class="d-flex flex-column align-center text-center">
+        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Color="Color.Error" Size="Size.Large" Class="mb-3" Style="font-size: 3rem;" />
+        <MudText Typo="Typo.subtitle1">@Title</MudText>
+        @if (!string.IsNullOrWhiteSpace(Message))
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-1" Style="max-width: 480px;">
+                @Message
+            </MudText>
+        }
+        @if (OnRetry.HasDelegate)
+        {
+            <MudButton StartIcon="@Icons.Material.Filled.Refresh"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       Class="mt-4"
+                       OnClick="OnRetry">
+                @RetryText
+            </MudButton>
+        }
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Something went wrong";
+
+    [Parameter] public string? Message { get; set; }
+
+    [Parameter] public string RetryText { get; set; } = "Try again";
+
+    /// <summary>Optional retry callback; when set a retry button is shown.</summary>
+    [Parameter] public EventCallback OnRetry { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+}

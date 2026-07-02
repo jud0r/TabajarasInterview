@@ -1,0 +1,379 @@
+@page "/candidates/{CandidateId:int}"
+@attribute [Authorize]
+@implements IDisposable
+@using System.Globalization
+@inject ICandidateApiService CandidateApi
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>@(_candidate?.FullName ?? "Candidate") · Profile</PageTitle>
+
+<div class="d-flex align-center mb-4">
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Href="/candidates">
+        Candidates
+    </MudButton>
+    <MudBreadcrumbs Items="_breadcrumbs" Class="py-0" />
+    <MudSpacer />
+    <MudTooltip Text="Refresh">
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" />
+    </MudTooltip>
+</div>
+
+@if (_loading)
+{
+    <LoadingState SkeletonRows="4" SkeletonHeight="90px" Message="Loading candidate profile…" />
+}
+else if (_error is not null || _candidate is null)
+{
+    <ErrorState Title="Could not load candidate"
+                Message="@(_error ?? "The candidate could not be found.")"
+                OnRetry="ReloadAsync" />
+}
+else
+{
+    @if (_usingSampleData)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4" Dense="true">
+            Live application data is unavailable — showing representative sample data. Implement
+            <code>GET /api/candidates/@CandidateId/positions</code> (backed by <code>get_candidate_positions</code>)
+            and <code>GET /api/candidates/@CandidateId/timeline</code> to populate this page with real data.
+        </MudAlert>
+    }
+
+    <CandidateHeader Candidate="_candidate"
+                     OnEdit="OpenEditDialogAsync"
+                     OnAddApplication="NotifyComingSoon"
+                     OnScheduleInterview="NotifyComingSoon"
+                     OnArchive="ConfirmArchiveAsync" />
+
+    <MudTabs Elevation="0" Rounded="true" Border="false" ApplyEffectsToContainer="true"
+             PanelClass="pt-6" Class="mt-4" KeepPanelsAlive="false">
+
+        @* ------------------------------------------------------------ Overview *@
+        <MudTabPanel Text="Overview" Icon="@Icons.Material.Filled.Dashboard">
+            <CandidateStatsCards Stats="_stats" />
+            <MudText Typo="Typo.h6" Class="mt-8 mb-3">Scores &amp; evaluation</MudText>
+            <CandidateScoreCharts Applications="_applications" />
+        </MudTabPanel>
+
+        @* -------------------------------------------------------- Applications *@
+        <MudTabPanel Text="Applications" Icon="@Icons.Material.Filled.Assignment">
+            <CandidateApplications Applications="_applications" OnAddApplication="NotifyComingSoon" />
+        </MudTabPanel>
+
+        @* ---------------------------------------------------------- Interviews *@
+        <MudTabPanel Text="Interviews" Icon="@Icons.Material.Filled.RecordVoiceOver">
+            @if (_interviewRows.Count == 0)
+            {
+                <EmptyState Icon="@Icons.Material.Filled.EventBusy"
+                            Title="No interviews"
+                            Description="This candidate has no interviews across their applications." />
+            }
+            else
+            {
+                <MudTable Items="_interviewRows" T="InterviewRow" Hover="true" Dense="true"
+                          Breakpoint="Breakpoint.Sm" Elevation="1" Class="rounded-lg">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.subtitle1">@_interviewRows.Count interview(s)</MudText>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh><MudTableSortLabel SortBy="new Func<InterviewRow, object>(x => x.Interview.Name)">Interview</MudTableSortLabel></MudTh>
+                        <MudTh>Type</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh><MudTableSortLabel SortBy="new Func<InterviewRow, object>(x => x.Position)">Position</MudTableSortLabel></MudTh>
+                        <MudTh>Interviewer</MudTh>
+                        <MudTh Style="text-align:right;"><MudTableSortLabel SortBy="new Func<InterviewRow, object>(x => x.Interview.Score ?? -1)">Score</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortBy="new Func<InterviewRow, object>(x => x.Interview.CreatedAt ?? DateTime.MinValue)">Created</MudTableSortLabel></MudTh>
+                        <MudTh>Updated</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Interview">@DisplayName(context.Interview)</MudTd>
+                        <MudTd DataLabel="Type">@(string.IsNullOrWhiteSpace(context.Interview.Type) ? "—" : context.Interview.Type)</MudTd>
+                        <MudTd DataLabel="Status"><StatusBadge Status="@context.Interview.Status" /></MudTd>
+                        <MudTd DataLabel="Position">@context.Position</MudTd>
+                        <MudTd DataLabel="Interviewer">@(string.IsNullOrWhiteSpace(context.Interview.InterviewerName) ? "Unassigned" : context.Interview.InterviewerName)</MudTd>
+                        <MudTd DataLabel="Score" Style="text-align:right;">
+                            @if (context.Interview.Score is { } score)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@StatusVisuals.ScoreColor(score)">
+                                    @score.ToString("0.0", CultureInfo.InvariantCulture)
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Created">@DateOnly(context.Interview.CreatedAt)</MudTd>
+                        <MudTd DataLabel="Updated">@DateOnly(context.Interview.UpdatedAt)</MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+                    </PagerContent>
+                </MudTable>
+            }
+        </MudTabPanel>
+
+        @* ------------------------------------------------------------ Feedback *@
+        <MudTabPanel Text="Feedback" Icon="@Icons.Material.Filled.RateReview">
+            <ReviewerFeedbackList Applications="_applications" />
+        </MudTabPanel>
+
+        @* ------------------------------------------------------------ Timeline *@
+        <MudTabPanel Text="Timeline" Icon="@Icons.Material.Filled.Timeline">
+            <InterviewTimeline Events="_timeline" />
+        </MudTabPanel>
+
+        @* ---------------------------------------------------------- Evaluation *@
+        <MudTabPanel Text="Evaluation" Icon="@Icons.Material.Filled.Quiz">
+            @if (_questionRows.Count == 0)
+            {
+                <EmptyState Icon="@Icons.Material.Outlined.Quiz"
+                            Title="No evaluation data"
+                            Description="Questions asked during interviews will appear here as an evaluation breakdown." />
+            }
+            else
+            {
+                <MudTable Items="_questionRows" T="QuestionRow" Hover="true" Dense="true"
+                          GroupBy="_questionGroup" Breakpoint="Breakpoint.Sm" Elevation="1" Class="rounded-lg">
+                    <ColGroup>
+                        <col style="width: 60px;" />
+                        <col />
+                        <col style="width: 140px;" />
+                        <col style="width: 90px;" />
+                        <col />
+                    </ColGroup>
+                    <HeaderContent>
+                        <MudTh>#</MudTh>
+                        <MudTh>Question</MudTh>
+                        <MudTh>Stack</MudTh>
+                        <MudTh Style="text-align:right;">Score</MudTh>
+                        <MudTh>Acceptable answer</MudTh>
+                    </HeaderContent>
+                    <GroupHeaderTemplate>
+                        <MudTh Class="mud-table-cell-custom-group" colspan="5">
+                            <MudIcon Icon="@Icons.Material.Filled.RecordVoiceOver" Size="Size.Small" Class="mr-2" />
+                            @context.Key
+                        </MudTh>
+                    </GroupHeaderTemplate>
+                    <RowTemplate>
+                        <MudTd DataLabel="#">@context.Question.Order</MudTd>
+                        <MudTd DataLabel="Question">@context.Question.Question</MudTd>
+                        <MudTd DataLabel="Stack">
+                            @if (!string.IsNullOrWhiteSpace(context.Question.Stack))
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info">@context.Question.Stack</MudChip>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Score" Style="text-align:right;">
+                            @if (context.Question.Score is { } score)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@StatusVisuals.ScoreColor(score)">
+                                    @score.ToString("0.0", CultureInfo.InvariantCulture)
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Acceptable answer">
+                            @(string.IsNullOrWhiteSpace(context.Question.AcceptableAnswer) ? "—" : context.Question.AcceptableAnswer)
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    /// <summary>Candidate identifier from the route.</summary>
+    [Parameter] public int CandidateId { get; set; }
+
+    private CandidateResponse? _candidate;
+    private List<CandidateApplicationResponse> _applications = [];
+    private List<TimelineEvent> _timeline = [];
+    private CandidateProfileStats _stats = new();
+    private List<InterviewRow> _interviewRows = [];
+    private List<QuestionRow> _questionRows = [];
+
+    private bool _loading = true;
+    private bool _usingSampleData;
+    private string? _error;
+    private int _loadedId = -1;
+    private CancellationTokenSource? _cts;
+
+    private List<BreadcrumbItem> _breadcrumbs = [];
+
+    private readonly TableGroupDefinition<QuestionRow> _questionGroup = new()
+    {
+        Selector = row => row.InterviewName
+    };
+
+    private sealed record InterviewRow(string Position, InterviewResponse Interview);
+
+    private sealed record QuestionRow(string InterviewName, InterviewQuestionResponse Question);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Reload only when the route id actually changes.
+        if (CandidateId != _loadedId)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task ReloadAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        _usingSampleData = false;
+        _loadedId = CandidateId;
+
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        try
+        {
+            var candidateResult = await CandidateApi.GetCandidateByIdAsync(CandidateId, token);
+            if (candidateResult is not { Success: true, Data: not null })
+            {
+                _error = candidateResult.ErrorMessage ?? "Candidate not found.";
+                _candidate = null;
+                return;
+            }
+
+            _candidate = candidateResult.Data;
+
+            // Applications/positions come from get_candidate_positions; fall back to
+            // representative sample data if the endpoint is not yet available.
+            var positionsResult = await CandidateApi.GetCandidatePositionsAsync(CandidateId, token);
+            if (positionsResult is { Success: true, Data: not null })
+            {
+                _applications = positionsResult.Data;
+            }
+            else
+            {
+                _applications = CandidateProfileSampleData.BuildApplications(_candidate);
+                _usingSampleData = true;
+            }
+
+            // Timeline is optional; if the endpoint is missing, synthesize it from
+            // the applications we already have (no duplicate calls needed).
+            var timelineResult = await CandidateApi.GetCandidateTimelineAsync(CandidateId, token);
+            _timeline = timelineResult is { Success: true, Data: not null } && timelineResult.Data.Count > 0
+                ? timelineResult.Data
+                : CandidateProfileSampleData.BuildTimeline(_candidate, _applications);
+
+            BuildDerivedData();
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer load; keep the latest state.
+        }
+        catch (Exception ex)
+        {
+            _error = $"Unexpected error: {ex.Message}";
+            _candidate = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void BuildDerivedData()
+    {
+        _stats = CandidateProfileStats.From(_applications);
+
+        _interviewRows = _applications
+            .SelectMany(a => a.Interviews.Select(i => new InterviewRow(a.PositionTitle, i)))
+            .OrderByDescending(r => r.Interview.CreatedAt ?? DateTime.MinValue)
+            .ToList();
+
+        _questionRows = _applications
+            .SelectMany(a => a.Interviews.SelectMany(i => i.Questions
+                .OrderBy(q => q.Order)
+                .Select(q => new QuestionRow(DisplayName(i), q))))
+            .ToList();
+
+        _breadcrumbs =
+        [
+            new BreadcrumbItem("Candidates", "/candidates"),
+            new BreadcrumbItem(_candidate?.FullName ?? $"#{CandidateId}", null, disabled: true)
+        ];
+    }
+
+    private async Task OpenEditDialogAsync()
+    {
+        if (_candidate is null)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters<CandidateDialog>
+        {
+            { x => x.Candidate, _candidate }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<CandidateDialog>("Edit candidate", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task ConfirmArchiveAsync()
+    {
+        if (_candidate is null)
+        {
+            return;
+        }
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Archive candidate",
+            $"Are you sure you want to archive \"{_candidate.FullName}\"? This performs a soft delete on the server.",
+            yesText: "Archive",
+            cancelText: "Cancel");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var result = await CandidateApi.DeleteCandidateAsync(_candidate.Id);
+        if (result.Success)
+        {
+            Snackbar.Add("Candidate archived.", Severity.Success);
+            Navigation.NavigateTo("/candidates");
+        }
+        else
+        {
+            Snackbar.Add(result.ErrorMessage ?? "Could not archive the candidate.", Severity.Error);
+        }
+    }
+
+    private void NotifyComingSoon() =>
+        Snackbar.Add("This action isn't available yet — the backing endpoint is not implemented.", Severity.Info);
+
+    private static string DisplayName(InterviewResponse interview) =>
+        string.IsNullOrWhiteSpace(interview.Name)
+            ? (string.IsNullOrWhiteSpace(interview.Type) ? "Interview" : $"{interview.Type} interview")
+            : interview.Name;
+
+    private static string DateOnly(DateTime? value) =>
+        value is { } v ? v.ToLocalTime().ToString("MMM d, yyyy") : "—";
+
+    public void Dispose() => _cts?.Cancel();
+}

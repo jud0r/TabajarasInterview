@@ -4,6 +4,7 @@
 @inject ICandidateApiService CandidateApi
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 
 <PageTitle>Candidates</PageTitle>
 
@@ -77,9 +78,9 @@
         <MudTd DataLabel="Phone">@(string.IsNullOrWhiteSpace(context.Phone) ? "—" : context.Phone)</MudTd>
         <MudTd DataLabel="Added">@context.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</MudTd>
         <MudTd DataLabel="Actions" Style="text-align:right;">
-            <MudTooltip Text="View details">
+            <MudTooltip Text="View profile">
                 <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
-                               OnClick="@(() => OpenDetailsAsync(context))" />
+                               OnClick="@(() => ViewProfile(context))" />
             </MudTooltip>
             <MudTooltip Text="Edit">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
@@ -209,20 +210,8 @@
         }
     }
 
-    private async Task OpenDetailsAsync(CandidateResponse candidate)
-    {
-        // Exercise GET /api/candidates/{id} so the details reflect the freshest server state.
-        var detailResult = await CandidateApi.GetCandidateByIdAsync(candidate.Id);
-        var detail = detailResult is { Success: true, Data: not null } ? detailResult.Data : candidate;
-
-        var parameters = new DialogParameters<CandidateDialog>
-        {
-            { x => x.Candidate, detail },
-            { x => x.ReadOnly, true }
-        };
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
-        await DialogService.ShowAsync<CandidateDialog>("Candidate details", parameters, options);
-    }
+    private void ViewProfile(CandidateResponse candidate) =>
+        Navigation.NavigateTo($"/candidates/{candidate.Id}");
 
     private async Task ConfirmDeleteAsync(CandidateResponse candidate)
     {

@@ -1,0 +1,202 @@
+@namespace TabajarasInterview.Web.Components.Shared.CandidateProfile
+
+@*
+    Applications section: filter (status / position / date range), sort (started
+    date / status / position) and a list of expandable ApplicationCard items.
+    Filtering and sorting happen client-side over the already-loaded data so no
+    extra API calls are needed.
+*@
+
+<MudPaper Elevation="1" Class="pa-4 rounded-lg mb-4">
+    <div class="d-flex flex-wrap align-center" style="gap: .75rem;">
+        <MudText Typo="Typo.subtitle1" Class="mr-2">
+            @Filtered.Count of @Applications.Count application@(Applications.Count == 1 ? "" : "s")
+        </MudText>
+        <MudSpacer />
+
+        <MudSelect T="string" Value="_statusFilter" ValueChanged="@(v => Apply(() => _statusFilter = v))"
+                   Label="Status" Clearable="true" Dense="true" Variant="Variant.Outlined"
+                   Margin="Margin.Dense" Style="width: 170px;">
+            <MudSelectItem T="string" Value="@((string?)null)">All statuses</MudSelectItem>
+            @foreach (var status in _statusOptions)
+            {
+                <MudSelectItem T="string" Value="@status">@status</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSelect T="string" Value="_positionFilter" ValueChanged="@(v => Apply(() => _positionFilter = v))"
+                   Label="Position" Clearable="true" Dense="true" Variant="Variant.Outlined"
+                   Margin="Margin.Dense" Style="width: 190px;">
+            <MudSelectItem T="string" Value="@((string?)null)">All positions</MudSelectItem>
+            @foreach (var position in _positionOptions)
+            {
+                <MudSelectItem T="string" Value="@position">@position</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudDateRangePicker @bind-DateRange="_dateRange" @bind-DateRange:after="StateHasChanged"
+                            Label="Started between" PickerVariant="PickerVariant.Dialog" Clearable="true"
+                            Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 230px;" />
+
+        <MudSelect T="Enums.ApplicationSort" Value="_sort" ValueChanged="@(v => Apply(() => _sort = v))"
+                   Label="Sort by" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 170px;">
+            <MudSelectItem T="Enums.ApplicationSort" Value="ApplicationSort.StartedDate">Started date</MudSelectItem>
+            <MudSelectItem T="Enums.ApplicationSort" Value="ApplicationSort.Status">Status</MudSelectItem>
+            <MudSelectItem T="Enums.ApplicationSort" Value="ApplicationSort.Position">Position title</MudSelectItem>
+        </MudSelect>
+
+        <MudTooltip Text="@(_descending ? "Descending" : "Ascending")">
+            <MudIconButton Icon="@(_descending ? Icons.Material.Filled.ArrowDownward : Icons.Material.Filled.ArrowUpward)"
+                           OnClick="@(() => Apply(() => _descending = !_descending))" />
+        </MudTooltip>
+
+        <MudTooltip Text="@(AllExpanded ? "Collapse all" : "Expand all")">
+            <MudIconButton Icon="@(AllExpanded ? Icons.Material.Filled.UnfoldLess : Icons.Material.Filled.UnfoldMore)"
+                           OnClick="ToggleAll" />
+        </MudTooltip>
+    </div>
+</MudPaper>
+
+@if (Filtered.Count == 0)
+{
+    @if (Applications.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.WorkOff"
+                    Title="No applications"
+                    Description="This candidate has not applied to any positions yet.">
+            <Actions>
+                @if (OnAddApplication.HasDelegate)
+                {
+                    <MudButton StartIcon="@Icons.Material.Filled.PostAdd" Color="Color.Primary" Variant="Variant.Filled"
+                               OnClick="OnAddApplication">Add application</MudButton>
+                }
+            </Actions>
+        </EmptyState>
+    }
+    else
+    {
+        <EmptyState Icon="@Icons.Material.Filled.SearchOff"
+                    Title="No matching applications"
+                    Description="Try adjusting the status, position or date filters." />
+    }
+}
+else
+{
+    @foreach (var application in Filtered)
+    {
+        var id = application.Id;
+        <ApplicationCard Application="application"
+                         Expanded="@IsExpanded(id)"
+                         ExpandedChanged="@(value => SetExpanded(id, value))" />
+    }
+}
+
+@code {
+    /// <summary>The candidate's applications (already loaded — no extra fetches).</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<CandidateApplicationResponse> Applications { get; set; } = [];
+
+    /// <summary>Optional CTA used by the empty state.</summary>
+    [Parameter] public EventCallback OnAddApplication { get; set; }
+
+    private string? _statusFilter;
+    private string? _positionFilter;
+    private DateRange? _dateRange;
+    private Enums.ApplicationSort _sort = ApplicationSort.StartedDate;
+    private bool _descending = true;
+    private readonly HashSet<int> _expanded = [];
+
+    private IReadOnlyList<string> _statusOptions = [];
+    private IReadOnlyList<string> _positionOptions = [];
+
+    protected override void OnParametersSet()
+    {
+        _statusOptions = Applications
+            .Select(a => a.Status)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s)
+            .ToList();
+
+        _positionOptions = Applications
+            .Select(a => a.PositionTitle)
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(p => p)
+            .ToList();
+    }
+
+    private List<CandidateApplicationResponse> Filtered
+    {
+        get
+        {
+            IEnumerable<CandidateApplicationResponse> query = Applications;
+
+            if (!string.IsNullOrWhiteSpace(_statusFilter))
+            {
+                query = query.Where(a => string.Equals(a.Status, _statusFilter, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(_positionFilter))
+            {
+                query = query.Where(a => string.Equals(a.PositionTitle, _positionFilter, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (_dateRange?.Start is { } start)
+            {
+                query = query.Where(a => a.StartedAt is null || a.StartedAt.Value.Date >= start.Date);
+            }
+
+            if (_dateRange?.End is { } end)
+            {
+                query = query.Where(a => a.StartedAt is null || a.StartedAt.Value.Date <= end.Date);
+            }
+
+            query = _sort switch
+            {
+                ApplicationSort.Status => query.OrderBy(a => a.Status ?? string.Empty),
+                ApplicationSort.Position => query.OrderBy(a => a.PositionTitle),
+                _ => query.OrderBy(a => a.StartedAt ?? DateTime.MinValue)
+            };
+
+            return (_descending ? query.Reverse() : query).ToList();
+        }
+    }
+
+    private bool AllExpanded => Filtered.Count > 0 && Filtered.All(a => _expanded.Contains(a.Id));
+
+    private bool IsExpanded(int id) => _expanded.Contains(id);
+
+    private void SetExpanded(int id, bool expanded)
+    {
+        if (expanded)
+        {
+            _expanded.Add(id);
+        }
+        else
+        {
+            _expanded.Remove(id);
+        }
+    }
+
+    private void ToggleAll()
+    {
+        if (AllExpanded)
+        {
+            _expanded.Clear();
+        }
+        else
+        {
+            foreach (var application in Filtered)
+            {
+                _expanded.Add(application.Id);
+            }
+        }
+    }
+
+    private void Apply(Action mutate)
+    {
+        mutate();
+        StateHasChanged();
+    }
+}

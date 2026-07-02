@@ -1,0 +1,95 @@
+@namespace TabajarasInterview.Web.Components.Shared.CandidateProfile
+
+@*
+    Candidate summary header: avatar with initials, identity fields and the primary
+    profile actions. All actions are surfaced as callbacks so the hosting page owns
+    the behavior (open dialog, navigate, archive, etc.).
+*@
+
+<MudPaper Elevation="2" Class="pa-4 rounded-lg">
+    <div class="d-flex flex-wrap align-center" style="gap: 1.5rem;">
+        <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Style="height: 88px; width: 88px; font-size: 2rem;">
+            @Initials
+        </MudAvatar>
+
+        <div class="flex-grow-1" style="min-width: 240px;">
+            <div class="d-flex align-center flex-wrap" style="gap: .5rem;">
+                <MudText Typo="Typo.h4">@Candidate.FullName</MudText>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default"
+                         Icon="@Icons.Material.Filled.Badge">
+                    ID #@Candidate.Id
+                </MudChip>
+            </div>
+
+            <div class="d-flex flex-wrap mt-2 mud-text-secondary" style="gap: 1.25rem;">
+                <span class="d-flex align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" Class="mr-1" />
+                    <MudLink Href="@($"mailto:{Candidate.Email}")" Color="Color.Inherit">@Candidate.Email</MudLink>
+                </span>
+                <span class="d-flex align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Class="mr-1" />
+                    @(string.IsNullOrWhiteSpace(Candidate.Phone) ? "—" : Candidate.Phone)
+                </span>
+            </div>
+
+            <div class="d-flex flex-wrap mt-1 mud-text-secondary" style="gap: 1.25rem;">
+                <MudText Typo="Typo.caption">
+                    <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Class="mr-1" />
+                    Created @FormatDate(Candidate.CreatedAt)
+                </MudText>
+                <MudText Typo="Typo.caption">
+                    <MudIcon Icon="@Icons.Material.Filled.Update" Size="Size.Small" Class="mr-1" />
+                    Updated @(Candidate.UpdatedAt is { } updated ? FormatDate(updated) : "never")
+                </MudText>
+            </div>
+        </div>
+
+        <MudStack Row="false" Spacing="2" Class="ml-auto">
+            <MudButton StartIcon="@Icons.Material.Filled.Edit" Color="Color.Primary" Variant="Variant.Filled"
+                       OnClick="OnEdit" Disabled="@(!OnEdit.HasDelegate)">
+                Edit candidate
+            </MudButton>
+            <MudStack Row="true" Spacing="2">
+                <MudButton StartIcon="@Icons.Material.Filled.PostAdd" Color="Color.Primary" Variant="Variant.Outlined"
+                           OnClick="OnAddApplication" Disabled="@(!OnAddApplication.HasDelegate)">
+                    Add application
+                </MudButton>
+                <MudButton StartIcon="@Icons.Material.Filled.EventAvailable" Color="Color.Tertiary" Variant="Variant.Outlined"
+                           OnClick="OnScheduleInterview" Disabled="@(!OnScheduleInterview.HasDelegate)">
+                    Schedule interview
+                </MudButton>
+                <MudTooltip Text="Archive (soft delete) candidate">
+                    <MudButton StartIcon="@Icons.Material.Filled.Archive" Color="Color.Error" Variant="Variant.Text"
+                               OnClick="OnArchive" Disabled="@(!OnArchive.HasDelegate)">
+                        Archive
+                    </MudButton>
+                </MudTooltip>
+            </MudStack>
+        </MudStack>
+    </div>
+</MudPaper>
+
+@code {
+    /// <summary>Candidate whose summary is displayed.</summary>
+    [Parameter, EditorRequired] public CandidateResponse Candidate { get; set; } = default!;
+
+    [Parameter] public EventCallback OnEdit { get; set; }
+    [Parameter] public EventCallback OnAddApplication { get; set; }
+    [Parameter] public EventCallback OnScheduleInterview { get; set; }
+    [Parameter] public EventCallback OnArchive { get; set; }
+
+    private string Initials
+    {
+        get
+        {
+            var first = Candidate.FirstName?.Trim();
+            var last = Candidate.LastName?.Trim();
+            var a = !string.IsNullOrEmpty(first) ? first![0] : ' ';
+            var b = !string.IsNullOrEmpty(last) ? last![0] : ' ';
+            var initials = $"{a}{b}".Trim();
+            return string.IsNullOrEmpty(initials) ? "?" : initials.ToUpperInvariant();
+        }
+    }
+
+    private static string FormatDate(DateTime value) => value.ToLocalTime().ToString("MMM d, yyyy");
+}

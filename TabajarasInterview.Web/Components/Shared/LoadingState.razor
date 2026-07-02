@@ -1,0 +1,37 @@
+@*
+    Reusable loading placeholder. Renders skeleton rows (default) or an
+    indeterminate progress bar, with an optional caption.
+*@
+
+<div class="d-flex flex-column @Class" aria-busy="true" aria-live="polite">
+    @if (ShowProgressBar)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+
+    @for (var i = 0; i < SkeletonRows; i++)
+    {
+        <MudSkeleton Height="@SkeletonHeight" Animation="Animation.Wave" Class="mb-2" />
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Message))
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">@Message</MudText>
+    }
+</div>
+
+@code {
+    /// <summary>Number of skeleton rows to render.</summary>
+    [Parameter] public int SkeletonRows { get; set; } = 3;
+
+    /// <summary>Height of each skeleton row.</summary>
+    [Parameter] public string SkeletonHeight { get; set; } = "48px";
+
+    /// <summary>Show an indeterminate progress bar above the skeletons.</summary>
+    [Parameter] public bool ShowProgressBar { get; set; } = true;
+
+    /// <summary>Optional caption shown below the skeletons.</summary>
+    [Parameter] public string? Message { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+}
