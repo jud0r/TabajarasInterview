@@ -1,0 +1,265 @@
+@page "/stacks"
+@attribute [Authorize]
+@implements IDisposable
+@inject IStackApiService StackApi
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Stacks</PageTitle>
+
+<div class="d-flex flex-wrap align-center mb-4">
+    <div class="flex-grow-1 mr-4">
+        <MudText Typo="Typo.h4">Stacks</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Manage the technologies and skills used across candidates, interviews, and templates</MudText>
+    </div>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
+        <MudTextField @bind-Value="_searchString"
+                      Immediate="true"
+                      Placeholder="Search by name"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      IconSize="Size.Medium"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Clearable="true"
+                      Style="width:280px;" />
+        <MudTooltip Text="Refresh">
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" />
+        </MudTooltip>
+        <MudButton StartIcon="@Icons.Material.Filled.Add"
+                   Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="OpenCreateDialogAsync">
+            Add stack
+        </MudButton>
+    </MudStack>
+</div>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-4"
+              ShowCloseIcon="true" CloseIconClicked="@(() => _error = null)">
+        @_error
+    </MudAlert>
+}
+
+<MudTable T="StackResponse"
+          Items="_stacks"
+          Filter="FilterFunc"
+          Loading="_loading"
+          LoadingProgressColor="Color.Primary"
+          Hover="true"
+          Striped="true"
+          Elevation="2"
+          AllowUnsorted="false">
+    <ToolBarContent>
+        <MudText Typo="Typo.subtitle1">@FilteredCount stack(s)</MudText>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>
+            <MudTableSortLabel SortBy="new Func<StackResponse, object>(x => x.Name)"
+                               InitialDirection="SortDirection.Ascending">
+                Name
+            </MudTableSortLabel>
+        </MudTh>
+        <MudTh>Description</MudTh>
+        <MudTh>
+            <MudTableSortLabel SortBy="new Func<StackResponse, object>(x => x.CreatedAt)">
+                Created Date
+            </MudTableSortLabel>
+        </MudTh>
+        <MudTh Style="text-align:right;">Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">
+            <MudText Typo="Typo.body1" Class="font-weight-medium">@context.Name</MudText>
+        </MudTd>
+        <MudTd DataLabel="Description">
+            @if (string.IsNullOrWhiteSpace(context.Description))
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">—</MudText>
+            }
+            else
+            {
+                <MudTooltip Text="@context.Description">
+                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:360px;display:inline-block;">
+                        @context.Description
+                    </MudText>
+                </MudTooltip>
+            }
+        </MudTd>
+        <MudTd DataLabel="Created Date">@context.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</MudTd>
+        <MudTd DataLabel="Actions" Style="text-align:right;">
+            <MudTooltip Text="View details">
+                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                               OnClick="@(() => OpenDetailsAsync(context))" />
+            </MudTooltip>
+            <MudTooltip Text="Edit">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="@(() => OpenEditDialogAsync(context))" />
+            </MudTooltip>
+            <MudTooltip Text="Delete">
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="@(() => ConfirmDeleteAsync(context))" />
+            </MudTooltip>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <div class="d-flex flex-column align-center py-8">
+            <MudIcon Icon="@Icons.Material.Filled.Layers" Size="Size.Large" Class="mb-2 mud-text-secondary" />
+            <MudText Typo="Typo.subtitle1">No stacks found</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                @(string.IsNullOrWhiteSpace(_searchString)
+                    ? "Add your first stack to get started."
+                    : "Try adjusting your search.")
+            </MudText>
+            @if (string.IsNullOrWhiteSpace(_searchString))
+            {
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                           Variant="Variant.Filled" OnClick="OpenCreateDialogAsync">
+                    Add stack
+                </MudButton>
+            }
+        </div>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText>Loading stacks...</MudText>
+    </LoadingContent>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private List<StackResponse> _stacks = [];
+    private bool _loading = true;
+    private string? _error;
+    private string _searchString = string.Empty;
+    private CancellationTokenSource? _cts;
+
+    private int FilteredCount => _stacks.Count(FilterFunc);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        try
+        {
+            var result = await StackApi.GetStacksAsync(token);
+            if (result is { Success: true, Data: not null })
+            {
+                _stacks = result.Data;
+            }
+            else
+            {
+                _error = result.ErrorMessage ?? "Could not load stacks.";
+                _stacks = [];
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer load superseded this one; keep the latest state.
+        }
+        catch (Exception ex)
+        {
+            _error = $"Unexpected error: {ex.Message}";
+            _stacks = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Task ReloadAsync() => LoadAsync();
+
+    private bool FilterFunc(StackResponse stack)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+        {
+            return true;
+        }
+
+        return stack.Name.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task OpenCreateDialogAsync()
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<StackDialog>("Add stack", options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenDetailsAsync(StackResponse stack)
+    {
+        // Exercise GET /api/stacks/get/{id} so the details reflect the freshest server state.
+        var detailResult = await StackApi.GetStackByIdAsync(stack.Id);
+        var detail = detailResult is { Success: true, Data: not null } ? detailResult.Data : stack;
+
+        var parameters = new DialogParameters<StackDialog>
+        {
+            { x => x.Stack, detail },
+            { x => x.ReadOnly, true }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        await DialogService.ShowAsync<StackDialog>("Stack details", parameters, options);
+    }
+
+    private async Task OpenEditDialogAsync(StackResponse stack)
+    {
+        var parameters = new DialogParameters<StackDialog>
+        {
+            { x => x.Stack, stack }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<StackDialog>("Edit stack", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task ConfirmDeleteAsync(StackResponse stack)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete stack",
+            $"Are you sure you want to delete \"{stack.Name}\"? This performs a soft delete on the server.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var result = await StackApi.DeleteStackAsync(stack.Id);
+        if (result.Success)
+        {
+            Snackbar.Add("Stack deleted.", Severity.Success);
+            await LoadAsync();
+        }
+        else
+        {
+            Snackbar.Add(result.ErrorMessage ?? "Could not delete the stack.", Severity.Error);
+        }
+    }
+
+    public void Dispose() => _cts?.Cancel();
+}

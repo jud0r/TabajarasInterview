@@ -1,0 +1,123 @@
+@inject IStackApiService StackApi
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="_model" OnValidSubmit="HandleSubmitAsync">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="_model.Name"
+                          For="@(() => _model.Name)"
+                          Label="Name"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Normal"
+                          MaxLength="100"
+                          ReadOnly="ReadOnly"
+                          Class="mb-2" />
+
+            <MudTextField @bind-Value="_model.Description"
+                          For="@(() => _model.Description)"
+                          Label="Description"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Normal"
+                          MaxLength="500"
+                          Lines="3"
+                          ReadOnly="ReadOnly"
+                          Class="mb-2" />
+
+            @if (ReadOnly && Stack is not null)
+            {
+                <div class="d-flex justify-space-between py-1">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Created</MudText>
+                    <MudText Typo="Typo.body2">@Stack.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                </div>
+                <div class="d-flex justify-space-between py-1">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Last updated</MudText>
+                    <MudText Typo="Typo.body2">@(Stack.UpdatedAt?.ToLocalTime().ToString("g") ?? "—")</MudText>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-2">@_error</MudAlert>
+            }
+
+            <div class="d-flex justify-end gap-2 mt-4">
+                <MudButton OnClick="Cancel" Variant="Variant.Text">@(ReadOnly ? "Close" : "Cancel")</MudButton>
+                @if (!ReadOnly)
+                {
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               Disabled="_busy">
+                        @(_busy ? "Saving..." : _saveLabel)
+                    </MudButton>
+                }
+            </div>
+        </EditForm>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>When set, the dialog edits/views an existing stack; otherwise it creates a new one.</summary>
+    [Parameter] public StackResponse? Stack { get; set; }
+
+    /// <summary>Renders the form as a non-editable details view (used by the "View details" action).</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    private readonly StackFormModel _model = new();
+    private bool _busy;
+    private string? _error;
+    private string _saveLabel = "Create";
+
+    protected override void OnInitialized()
+    {
+        if (Stack is not null)
+        {
+            _model.Name = Stack.Name;
+            _model.Description = Stack.Description;
+            _saveLabel = "Save changes";
+        }
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        if (ReadOnly)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+
+        var result = Stack is null
+            ? await StackApi.CreateStackAsync(new CreateStackRequest { Name = _model.Name, Description = _model.Description })
+            : await StackApi.UpdateStackAsync(Stack.Id, new UpdateStackRequest { Name = _model.Name, Description = _model.Description });
+
+        if (result is { Success: true })
+        {
+            Snackbar.Add(Stack is null ? "Stack created." : "Stack updated.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+            return;
+        }
+
+        _error = result.ErrorMessage ?? "Could not save the stack. Please try again.";
+        _busy = false;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Local editable model shared by the create and update validation rules.</summary>
+    private sealed class StackFormModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Name is required"),
+         System.ComponentModel.DataAnnotations.StringLength(100, ErrorMessage = "Name must be at most 100 characters")]
+        public string Name { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.StringLength(500, ErrorMessage = "Description must be at most 500 characters")]
+        public string? Description { get; set; }
+    }
+}
