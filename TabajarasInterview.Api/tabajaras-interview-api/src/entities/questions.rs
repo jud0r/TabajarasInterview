@@ -12,6 +12,7 @@ pub struct Model {
     pub question: String,
     #[sea_orm(column_type = "Text", nullable)]
     pub acceptable_answer: Option<String>,
+    pub level: Option<String>,
     pub created_at: DateTime,
     pub updated_at: Option<DateTime>,
     pub deleted_at: Option<DateTime>,

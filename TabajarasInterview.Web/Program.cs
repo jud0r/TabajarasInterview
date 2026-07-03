@@ -118,6 +118,7 @@ builder.Services.AddScoped<IAuthApiService, AuthApiService>();
 builder.Services.AddScoped<IDashboardApiService, DashboardApiService>();
 builder.Services.AddScoped<ICandidateApiService, CandidateApiService>();
 builder.Services.AddScoped<IStackApiService, StackApiService>();
+builder.Services.AddScoped<IQuestionApiService, QuestionApiService>();
 builder.Services.AddScoped<AuthorizedHttpClientFactory>();
 builder.Services.AddScoped<CookieService>();
 builder.Services.AddScoped<AuthService>();

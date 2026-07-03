@@ -26,6 +26,7 @@ pub struct QuestionResponse {
     pub stack_id: i32,
     pub question: String,
     pub acceptable_answer: Option<String>,
+    pub level: Option<String>,
     pub created_at: sea_orm::prelude::DateTime,
     pub updated_at: Option<sea_orm::prelude::DateTime>,
 }
@@ -36,6 +37,7 @@ pub struct CreateQuestionRequest {
     #[validate(length(min = 1, message = "question must not be empty"))]
     pub question: String,
     pub acceptable_answer: Option<String>,
+    pub level: Option<String>,
 }
 
 #[derive(Deserialize, Validate, ToSchema)]
@@ -44,6 +46,7 @@ pub struct UpdateQuestionRequest {
     #[validate(length(min = 1, message = "question must not be empty"))]
     pub question: Option<String>,
     pub acceptable_answer: Option<String>,
+    pub level: Option<String>,
 }
 
 #[utoipa::path(
@@ -80,6 +83,7 @@ pub async fn get_questions(
             acceptable_answer: q.acceptable_answer,
             created_at: q.created_at,
             updated_at: q.updated_at,
+            level: q.level,
         })
         .collect();
 
@@ -123,6 +127,7 @@ pub async fn get_questions_by_stack(
             acceptable_answer: q.acceptable_answer,
             created_at: q.created_at,
             updated_at: q.updated_at,
+            level: q.level, 
         })
         .collect();
 
@@ -156,6 +161,7 @@ pub async fn create_question(
         stack_id: Set(payload.stack_id),
         question: Set(payload.question),
         acceptable_answer: Set(payload.acceptable_answer),
+        level: Set(payload.level),
         created_at: Set(chrono::Utc::now().naive_utc()),
         ..Default::default()
     };
@@ -175,6 +181,7 @@ pub async fn create_question(
         acceptable_answer: question.acceptable_answer,
         created_at: question.created_at,
         updated_at: question.updated_at,
+        level: question.level,
     };
 
     Ok((StatusCode::CREATED, Json(response)))
@@ -216,6 +223,7 @@ pub async fn get_question(
         acceptable_answer: question.acceptable_answer,
         created_at: question.created_at,
         updated_at: question.updated_at,
+        level: question.level,  
     };
 
     Ok(Json(response))
@@ -271,6 +279,10 @@ pub async fn update_question(
         active_question.acceptable_answer = Set(Some(acceptable_answer));
     }
 
+    if let Some(level) = payload.level {
+        active_question.level = Set(Some(level));
+    }
+
     active_question.updated_at = Set(Some(chrono::Utc::now().naive_utc()));
 
     let question = active_question
@@ -286,6 +298,7 @@ pub async fn update_question(
         stack_id: question.stack_id,
         question: question.question,
         acceptable_answer: question.acceptable_answer,
+        level: question.level,
         created_at: question.created_at,
         updated_at: question.updated_at,
     };
