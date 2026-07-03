@@ -1,0 +1,215 @@
+@inject IQuestionApiService QuestionApi
+@inject IStackApiService StackApi
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (_loadingStacks)
+        {
+            <div class="d-flex justify-center py-4">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else
+        {
+            <EditForm Model="_model" OnValidSubmit="HandleSubmitAsync">
+                <DataAnnotationsValidator />
+
+                <MudTextField @bind-Value="_model.Question"
+                              For="@(() => _model.Question)"
+                              Label="Question"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Normal"
+                              Lines="3"
+                              MaxLength="1000"
+                              ReadOnly="ReadOnly"
+                              Class="mb-2" />
+
+                <MudTextField @bind-Value="_model.AcceptableAnswer"
+                              For="@(() => _model.AcceptableAnswer)"
+                              Label="Acceptable answer"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Normal"
+                              Lines="4"
+                              MaxLength="2000"
+                              ReadOnly="ReadOnly"
+                              Class="mb-2" />
+
+                <MudSelect T="string" @bind-Value="_model.Level"
+                           For="@(() => _model.Level)"
+                           Label="Level"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Normal"
+                           ReadOnly="ReadOnly"
+                           Class="mb-2">
+                    @foreach (var level in QuestionLevels.All)
+                    {
+                        <MudSelectItem T="string" Value="@level">@level</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect T="int" @bind-Value="_model.StackId"
+                           For="@(() => _model.StackId)"
+                           Label="Stack"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Normal"
+                           ReadOnly="ReadOnly"
+                           Class="mb-2">
+                    @foreach (var stack in _stacks)
+                    {
+                        <MudSelectItem T="int" Value="@stack.Id">@stack.Name</MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (ReadOnly && Question is not null)
+                {
+                    <div class="d-flex justify-space-between py-1">
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Created</MudText>
+                        <MudText Typo="Typo.body2">@Question.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                    </div>
+                    <div class="d-flex justify-space-between py-1">
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Last updated</MudText>
+                        <MudText Typo="Typo.body2">@(Question.UpdatedAt?.ToLocalTime().ToString("g") ?? "—")</MudText>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <MudAlert Severity="Severity.Error" Class="mt-2">@_error</MudAlert>
+                }
+
+                <div class="d-flex justify-end gap-2 mt-4">
+                    <MudButton OnClick="Cancel" Variant="Variant.Text">@(ReadOnly ? "Close" : "Cancel")</MudButton>
+                    @if (!ReadOnly)
+                    {
+                        <MudButton ButtonType="ButtonType.Submit"
+                                   Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   Disabled="_busy || _stacks.Count == 0">
+                            @(_busy ? "Saving..." : _saveLabel)
+                        </MudButton>
+                    }
+                </div>
+
+                @if (!ReadOnly && _stacks.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mt-2">
+                        No stacks are available. Create a stack first before adding a question.
+                    </MudAlert>
+                }
+            </EditForm>
+        }
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>When set, the dialog edits/views an existing question; otherwise it creates a new one.</summary>
+    [Parameter] public QuestionResponse? Question { get; set; }
+
+    /// <summary>Renders the form as a non-editable details view (used by the "View" action).</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    private readonly QuestionFormModel _model = new();
+    private List<StackResponse> _stacks = [];
+    private bool _loadingStacks = true;
+    private bool _busy;
+    private string? _error;
+    private string _saveLabel = "Create";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Question is not null)
+        {
+            _model.Question = Question.Question;
+            _model.AcceptableAnswer = Question.AcceptableAnswer;
+            _model.Level = Question.Level;
+            _model.StackId = Question.StackId;
+            _saveLabel = "Save changes";
+        }
+
+        await LoadStacksAsync();
+    }
+
+    private async Task LoadStacksAsync()
+    {
+        _loadingStacks = true;
+
+        var result = await StackApi.GetStacksAsync();
+        if (result is { Success: true, Data: not null })
+        {
+            _stacks = result.Data;
+
+            if (_model.StackId == 0 && _stacks.Count > 0)
+            {
+                _model.StackId = _stacks[0].Id;
+            }
+        }
+        else
+        {
+            _error = result.ErrorMessage ?? "Could not load stacks.";
+            _stacks = [];
+        }
+
+        _loadingStacks = false;
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        if (ReadOnly)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+
+        var result = Question is null
+            ? await QuestionApi.CreateQuestionAsync(new CreateQuestionRequest
+            {
+                StackId = _model.StackId,
+                Question = _model.Question,
+                AcceptableAnswer = _model.AcceptableAnswer,
+                Level = _model.Level
+            })
+            : await QuestionApi.UpdateQuestionAsync(Question.Id, new UpdateQuestionRequest
+            {
+                StackId = _model.StackId,
+                Question = _model.Question,
+                AcceptableAnswer = _model.AcceptableAnswer,
+                Level = _model.Level
+            });
+
+        if (result is { Success: true })
+        {
+            Snackbar.Add(Question is null ? "Question created." : "Question updated.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+            return;
+        }
+
+        _error = result.ErrorMessage ?? "Could not save the question. Please try again.";
+        _busy = false;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Local editable model shared by the create and update validation rules.</summary>
+    private sealed class QuestionFormModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Question is required"),
+         System.ComponentModel.DataAnnotations.StringLength(1000, ErrorMessage = "Question must be at most 1000 characters")]
+        public string Question { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Acceptable answer is required"),
+         System.ComponentModel.DataAnnotations.StringLength(2000, ErrorMessage = "Acceptable answer must be at most 2000 characters")]
+        public string? AcceptableAnswer { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Level is required")]
+        public string? Level { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "Stack is required")]
+        public int StackId { get; set; }
+    }
+}
