@@ -6,6 +6,8 @@ pub use super::candidates::Entity as Candidates;
 pub use super::interview_questions::Entity as InterviewQuestions;
 pub use super::interview_reviewers::Entity as InterviewReviewers;
 pub use super::interviews::Entity as Interviews;
+pub use super::locations::Entity as Locations;
+pub use super::position_locations::Entity as PositionLocations;
 pub use super::position_stacks::Entity as PositionStacks;
 pub use super::positions::Entity as Positions;
 pub use super::questions::Entity as Questions;
