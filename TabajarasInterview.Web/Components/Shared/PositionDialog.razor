@@ -1,0 +1,308 @@
+@inject IPositionApiService PositionApi
+@inject IUserApiService UserApi
+@inject IStackApiService StackApi
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="_model" OnValidSubmit="HandleSubmitAsync">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="_model.Title"
+                          For="@(() => _model.Title)"
+                          Label="Title"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Normal"
+                          MaxLength="200"
+                          ReadOnly="ReadOnly"
+                          Class="mb-2" />
+
+            <MudTextField @bind-Value="_model.Description"
+                          For="@(() => _model.Description)"
+                          Label="Description"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Normal"
+                          Lines="4"
+                          MaxLength="2000"
+                          ReadOnly="ReadOnly"
+                          Class="mb-2" />
+
+            <MudSelect T="string" @bind-Value="_model.Status"
+                       For="@(() => _model.Status)"
+                       Label="Status"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Normal"
+                       ReadOnly="ReadOnly"
+                       Class="mb-2">
+                @foreach (var status in PositionStatuses.All)
+                    {
+                        <MudSelectItem T="string" Value="@status">@PositionStatuses.Label(status)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (!ReadOnly)
+                {
+                    @if (_loadingStacks)
+                    {
+                        <div class="d-flex align-center py-2" style="gap:.5rem;">
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">Loading stacks…</MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedStackIds"
+                                   Label="Stacks" Placeholder="Select required stacks"
+                                   Variant="Variant.Outlined" Margin="Margin.Normal"
+                                   Clearable="true" Class="mb-2">
+                            @foreach (var stack in _availableStacks)
+                            {
+                                <MudSelectItem T="int" Value="@stack.Id">@stack.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        @if (_availableStacks.Count == 0)
+                        {
+                            <MudAlert Severity="Severity.Info" Class="mb-2" Dense="true">
+                                No stacks exist yet. Create one from the Stacks page to tag this position.
+                            </MudAlert>
+                        }
+                    }
+                }
+
+                @if (ReadOnly && Position is not null)
+            {
+                <div class="d-flex justify-space-between py-1">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Created</MudText>
+                    <MudText Typo="Typo.body2">@Position.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                </div>
+                <div class="d-flex justify-space-between py-1">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Last updated</MudText>
+                    <MudText Typo="Typo.body2">@(Position.UpdatedAt?.ToLocalTime().ToString("g") ?? "—")</MudText>
+                </div>
+                <div class="d-flex justify-space-between py-1">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Created by</MudText>
+                    <MudText Typo="Typo.body2">@(_creatorName ?? $"User #{Position.CreatedBy}")</MudText>
+                </div>
+
+                @if (Position.Stacks.Count > 0)
+                {
+                    <div class="py-2">
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-1">Stacks</MudText>
+                        <div class="d-flex flex-wrap" style="gap:.25rem;">
+                            @foreach (var stack in Position.Stacks)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@stack.Name</MudChip>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="py-2">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-1">Candidate statistics</MudText>
+                    @if (_loadingStats)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    }
+                    else if (_stats is not null)
+                    {
+                        <div class="d-flex flex-wrap" style="gap:.5rem;">
+                            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Assignment" Color="Color.Info">
+                                @_stats.ApplicationCount application(s)
+                            </MudChip>
+                            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.RecordVoiceOver" Color="Color.Primary">
+                                @_stats.InterviewCount interview(s)
+                            </MudChip>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Statistics unavailable</MudText>
+                    }
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-2">@_error</MudAlert>
+            }
+
+            <div class="d-flex justify-end gap-2 mt-4">
+                <MudButton OnClick="Cancel" Variant="Variant.Text">@(ReadOnly ? "Close" : "Cancel")</MudButton>
+                @if (!ReadOnly)
+                {
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               Disabled="_busy">
+                        @(_busy ? "Saving..." : _saveLabel)
+                    </MudButton>
+                }
+            </div>
+        </EditForm>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>When set, the dialog edits/views an existing position; otherwise it creates a new one.</summary>
+    [Parameter] public PositionResponse? Position { get; set; }
+
+    /// <summary>Renders the form as a non-editable details view (used by the "View details" action).</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    private readonly PositionFormModel _model = new();
+    private bool _busy;
+    private string? _error;
+    private string _saveLabel = "Create";
+
+    private bool _loadingStats;
+    private PositionStatsResponse? _stats;
+    private string? _creatorName;
+
+    private List<StackResponse> _availableStacks = [];
+    private IReadOnlyCollection<int> _selectedStackIds = new HashSet<int>();
+    private bool _loadingStacks = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Position is not null)
+        {
+            _model.Title = Position.Title;
+            _model.Description = Position.Description;
+            _model.Status = Position.Status;
+            _selectedStackIds = Position.Stacks.Select(s => s.Id).ToHashSet();
+            _saveLabel = "Save changes";
+        }
+
+        if (ReadOnly && Position is not null)
+        {
+            await Task.WhenAll(LoadStatsAsync(), LoadCreatorNameAsync());
+        }
+        else
+        {
+            await LoadStacksAsync();
+        }
+    }
+
+    private async Task LoadStacksAsync()
+    {
+        _loadingStacks = true;
+
+        var result = await StackApi.GetStacksAsync();
+        _availableStacks = result is { Success: true, Data: not null } ? result.Data : [];
+
+        _loadingStacks = false;
+    }
+
+    private async Task LoadStatsAsync()
+    {
+        _loadingStats = true;
+
+        var result = await PositionApi.GetPositionStatsAsync(Position!.Id);
+        _stats = result is { Success: true, Data: not null } ? result.Data : null;
+
+        _loadingStats = false;
+    }
+
+    private async Task LoadCreatorNameAsync()
+    {
+        var result = await UserApi.GetUsersAsync();
+        if (result is { Success: true, Data: not null })
+        {
+            _creatorName = result.Data.FirstOrDefault(u => u.Id == Position!.CreatedBy)?.FullName;
+        }
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        if (ReadOnly)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+
+        var result = Position is null
+            ? await PositionApi.CreatePositionAsync(new CreatePositionRequest
+            {
+                Title = _model.Title,
+                Description = _model.Description,
+                Status = _model.Status
+            })
+            : await PositionApi.UpdatePositionAsync(Position.Id, new UpdatePositionRequest
+            {
+                Title = _model.Title,
+                Description = _model.Description,
+                Status = _model.Status
+            });
+
+        if (result is not { Success: true, Data: not null })
+        {
+            _error = result.ErrorMessage ?? "Could not save the position. Please try again.";
+            _busy = false;
+            return;
+        }
+
+        if (!await SyncStacksAsync(result.Data.Id))
+        {
+            _error = "The position was saved, but its stacks could not be fully updated. Please try again.";
+            _busy = false;
+            return;
+        }
+
+        Snackbar.Add(Position is null ? "Position created." : "Position updated.", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    /// <summary>
+    /// The rust-api has no bulk "set stacks" endpoint, so the selected stack ids are
+    /// diffed against the position's current stacks and reconciled with individual
+    /// assign/remove calls.
+    /// </summary>
+    private async Task<bool> SyncStacksAsync(int positionId)
+    {
+        var currentStackIds = (Position?.Stacks ?? []).Select(s => s.Id).ToHashSet();
+        var desiredStackIds = _selectedStackIds.ToHashSet();
+
+        foreach (var stackId in desiredStackIds.Except(currentStackIds))
+        {
+            var addResult = await PositionApi.AssignStackAsync(positionId, stackId);
+            if (!addResult.Success)
+            {
+                return false;
+            }
+        }
+
+        foreach (var stackId in currentStackIds.Except(desiredStackIds))
+        {
+            var removeResult = await PositionApi.RemoveStackAsync(positionId, stackId);
+            if (!removeResult.Success)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Local editable model shared by the create and update validation rules.</summary>
+    private sealed class PositionFormModel
+    {
+        [Required(ErrorMessage = "Title is required"),
+         StringLength(500, MinimumLength = 3, ErrorMessage = "Title must be between 3 and 500 characters")]
+        public string Title { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Description is required"),
+         StringLength(2000, ErrorMessage = "Description must be at most 2000 characters")]
+        public string? Description { get; set; }
+
+        [Required(ErrorMessage = "Status is required")]
+        public string Status { get; set; } = PositionStatuses.Draft;
+    }
+}

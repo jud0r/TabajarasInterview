@@ -33,6 +33,14 @@ namespace TabajarasInterview.Web.Services.Api
             return await parser.ParseAsync<UserResponse>(response, ct);
         }
 
+        public async Task<ApiResult<List<UserResponse>>> GetUsersAsync(CancellationToken ct = default)
+        {
+            var client = await authorizedFactory.CreateClientAsync(BaseUrl);
+
+            var response = await client.GetAsync("api/users/get_all", ct);
+            return await parser.ParseAsync<List<UserResponse>>(response, ct);
+        }
+
         public async Task<ApiResult<UserResponse>> UpdateProfileAsync(UpdateProfileRequest request, CancellationToken ct = default)
         {
             var client = await authorizedFactory.CreateClientAsync(BaseUrl);

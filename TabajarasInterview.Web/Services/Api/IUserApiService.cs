@@ -10,6 +10,9 @@ namespace TabajarasInterview.Web.Services.Api
         /// <summary>Fetches the currently authenticated user (<c>GET /api/users/get</c>).</summary>
         Task<ApiResult<UserResponse>> GetCurrentAsync(CancellationToken ct = default);
 
+        /// <summary>Lists users (<c>GET /api/users/get_all</c>).</summary>
+        Task<ApiResult<List<UserResponse>>> GetUsersAsync(CancellationToken ct = default);
+
         /// <summary>Updates the current user's profile (<c>PUT /api/users/update</c>).</summary>
         Task<ApiResult<UserResponse>> UpdateProfileAsync(UpdateProfileRequest request, CancellationToken ct = default);
 
