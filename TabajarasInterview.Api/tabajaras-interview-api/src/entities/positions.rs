@@ -12,6 +12,7 @@ pub struct Model {
     #[sea_orm(column_type = "Text", nullable)]
     pub description: Option<String>,
     pub status: String,
+    pub work_model: String,
     pub created_at: DateTime,
     pub updated_at: Option<DateTime>,
     pub deleted_at: Option<DateTime>,
@@ -21,6 +22,8 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::candidate_applications::Entity")]
     CandidateApplications,
+    #[sea_orm(has_many = "super::position_locations::Entity")]
+    PositionLocations,
     #[sea_orm(has_many = "super::position_stacks::Entity")]
     PositionStacks,
     #[sea_orm(
@@ -39,6 +42,12 @@ impl Related<super::candidate_applications::Entity> for Entity {
     }
 }
 
+impl Related<super::position_locations::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::PositionLocations.def()
+    }
+}
+
 impl Related<super::position_stacks::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::PositionStacks.def()
@@ -48,6 +57,15 @@ impl Related<super::position_stacks::Entity> for Entity {
 impl Related<super::users::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Users.def()
+    }
+}
+
+impl Related<super::locations::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::position_locations::Relation::Locations.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::position_locations::Relation::Positions.def().rev())
     }
 }
 

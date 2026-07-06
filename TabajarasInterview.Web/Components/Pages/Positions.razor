@@ -1,0 +1,351 @@
+@page "/positions"
+@attribute [Authorize]
+@implements IDisposable
+@inject IPositionApiService PositionApi
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Positions</PageTitle>
+
+<div class="d-flex flex-wrap align-center mb-4">
+    <div class="flex-grow-1 mr-4">
+        <MudText Typo="Typo.h4">Positions</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Manage open job positions and their requirements</MudText>
+    </div>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
+        <MudTooltip Text="Refresh">
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" />
+        </MudTooltip>
+        <MudButton StartIcon="@Icons.Material.Filled.Add"
+                   Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="OpenCreateDialogAsync">
+            Add position
+        </MudButton>
+    </MudStack>
+</div>
+
+@if (_loading)
+{
+    <LoadingState SkeletonRows="5" SkeletonHeight="52px" Message="Loading positions…" />
+}
+else if (_error is not null)
+{
+    <ErrorState Title="Could not load positions" Message="@_error" OnRetry="ReloadAsync" />
+}
+else
+{
+    <MudPaper Elevation="1" Class="pa-4 rounded-lg mb-4">
+        <div class="d-flex flex-wrap align-center" style="gap: .75rem;">
+            <MudTextField @bind-Value="_searchString"
+                          Immediate="true"
+                          Placeholder="Search by title or description"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Clearable="true"
+                          Style="width:300px;" />
+
+            <MudSelect T="string" Value="_statusFilter" ValueChanged="@(v => Apply(() => _statusFilter = v))"
+                       Label="Status" Clearable="true" Dense="true" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Style="width:160px;">
+                @foreach (var status in PositionStatuses.All)
+                {
+                    <MudSelectItem T="string" Value="@status">@PositionStatuses.Label(status)</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSelect T="int?" Value="_stackFilter" ValueChanged="@(v => Apply(() => _stackFilter = v))"
+                       Label="Stack" Clearable="true" Dense="true" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Style="width:180px;">
+                @foreach (var stack in AvailableStacks)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)stack.Id)">@stack.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSpacer />
+            <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
+                @FilteredCount of @_positions.Count position(s)
+            </MudText>
+        </div>
+    </MudPaper>
+
+    @if (_positions.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.Work"
+                    Title="No positions yet"
+                    Description="Add your first job position to get started.">
+            <Actions>
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" Variant="Variant.Filled"
+                           OnClick="OpenCreateDialogAsync">
+                    Add position
+                </MudButton>
+            </Actions>
+        </EmptyState>
+    }
+    else if (FilteredCount == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.SearchOff"
+                    Title="No matching positions"
+                    Description="Try adjusting your search or filters." />
+    }
+    else
+    {
+        <MudTable T="PositionResponse"
+                  Items="_positions"
+                  Filter="FilterFunc"
+                  Hover="true"
+                  Striped="true"
+                  Elevation="2"
+                  Breakpoint="Breakpoint.Sm"
+                  AllowUnsorted="false">
+            <HeaderContent>
+                <MudTh>
+                    <MudTableSortLabel SortBy="new Func<PositionResponse, object>(x => x.Title)"
+                                       InitialDirection="SortDirection.Ascending">
+                        Title
+                    </MudTableSortLabel>
+                </MudTh>
+                <MudTh>Description</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Stacks</MudTh>
+                <MudTh>
+                    <MudTableSortLabel SortBy="new Func<PositionResponse, object>(x => x.CreatedAt)">
+                        Created Date
+                    </MudTableSortLabel>
+                </MudTh>
+                <MudTh Style="text-align:right;">Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Title">
+                    <MudText Typo="Typo.body1" Class="font-weight-medium">@context.Title</MudText>
+                </MudTd>
+                <MudTd DataLabel="Description">
+                    @if (string.IsNullOrWhiteSpace(context.Description))
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">—</MudText>
+                    }
+                    else
+                    {
+                        <MudTooltip Text="@context.Description">
+                            <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:320px;display:inline-block;">
+                                @context.Description
+                            </MudText>
+                        </MudTooltip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Status">
+                    <StatusBadge Status="@context.Status" Text="@PositionStatuses.Label(context.Status)" />
+                </MudTd>
+                <MudTd DataLabel="Stacks">
+                    @if (context.Stacks.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">—</MudText>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-wrap" style="gap:.25rem;">
+                            @foreach (var stack in context.Stacks.Take(3))
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@stack.Name</MudChip>
+                            }
+                            @if (context.Stacks.Count > 3)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">+@(context.Stacks.Count - 3)</MudChip>
+                            }
+                        </div>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Created Date">@context.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</MudTd>
+                <MudTd DataLabel="Actions" Style="text-align:right;">
+                    <MudTooltip Text="View details">
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                       OnClick="@(() => OpenDetailsAsync(context))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Edit">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                                       OnClick="@(() => OpenEditDialogAsync(context))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Delete">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => ConfirmDeleteAsync(context))" />
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+            </PagerContent>
+        </MudTable>
+    }
+}
+
+@code {
+    private List<PositionResponse> _positions = [];
+    private bool _loading = true;
+    private string? _error;
+
+    private string _searchString = string.Empty;
+    private string? _statusFilter;
+    private int? _stackFilter;
+
+    private CancellationTokenSource? _cts;
+
+    private int FilteredCount => _positions.Count(FilterFunc);
+
+    private List<StackResponse> AvailableStacks =>
+        _positions.SelectMany(p => p.Stacks)
+            .GroupBy(s => s.Id)
+            .Select(g => g.First())
+            .OrderBy(s => s.Name)
+            .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        try
+        {
+            var result = await PositionApi.GetPositionsAsync(token);
+            if (result is { Success: true, Data: not null })
+            {
+                _positions = result.Data;
+            }
+            else
+            {
+                _error = result.ErrorMessage ?? "Could not load positions.";
+                _positions = [];
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer load superseded this one; keep the latest state.
+        }
+        catch (Exception ex)
+        {
+            _error = $"Unexpected error: {ex.Message}";
+            _positions = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Task ReloadAsync() => LoadAsync();
+
+    private bool FilterFunc(PositionResponse position)
+    {
+        if (!string.IsNullOrWhiteSpace(_searchString))
+        {
+            var matchesSearch = position.Title.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                || (position.Description?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false);
+
+            if (!matchesSearch)
+            {
+                return false;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(_statusFilter)
+            && !string.Equals(position.Status, _statusFilter, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (_stackFilter is { } stackId && !position.Stacks.Any(s => s.Id == stackId))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task OpenCreateDialogAsync()
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<PositionDialog>("Add position", options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenDetailsAsync(PositionResponse position)
+    {
+        // Exercise GET /api/positions/get/{id} so the details reflect the freshest server state.
+        var detailResult = await PositionApi.GetPositionByIdAsync(position.Id);
+        var detail = detailResult is { Success: true, Data: not null } ? detailResult.Data : position;
+
+        var parameters = new DialogParameters<PositionDialog>
+        {
+            { x => x.Position, detail },
+            { x => x.ReadOnly, true }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        await DialogService.ShowAsync<PositionDialog>("Position details", parameters, options);
+    }
+
+    private async Task OpenEditDialogAsync(PositionResponse position)
+    {
+        var parameters = new DialogParameters<PositionDialog>
+        {
+            { x => x.Position, position }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<PositionDialog>("Edit position", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task ConfirmDeleteAsync(PositionResponse position)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete position",
+            $"Are you sure you want to delete \"{position.Title}\"? This performs a soft delete on the server.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var result = await PositionApi.DeletePositionAsync(position.Id);
+        if (result.Success)
+        {
+            Snackbar.Add("Position deleted.", Severity.Success);
+            await LoadAsync();
+        }
+        else
+        {
+            Snackbar.Add(result.ErrorMessage ?? "Could not delete the position.", Severity.Error);
+        }
+    }
+
+    private void Apply(Action mutate)
+    {
+        mutate();
+        StateHasChanged();
+    }
+
+    public void Dispose() => _cts?.Cancel();
+}
