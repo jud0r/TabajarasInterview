@@ -1,7 +1,6 @@
 @page "/candidates/{CandidateId:int}"
 @attribute [Authorize]
 @implements IDisposable
-@using System.Globalization
 @inject ICandidateApiService CandidateApi
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
