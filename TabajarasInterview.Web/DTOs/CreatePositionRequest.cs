@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using TabajarasInterview.Web.Components.Shared;
 
 namespace TabajarasInterview.Web.DTOs;
 
@@ -21,7 +22,7 @@ public sealed class CreatePositionRequest
      StringLength(2000, ErrorMessage = "Description must be at most 2000 characters")]
     public string? Description { get; set; }
 
-    /// <summary>Wire-format status value (snake_case, e.g. <c>draft</c>, <c>open</c>). See <see cref="Components.Shared.PositionStatuses"/>.</summary>
+    /// <summary>Wire-format status value (snake_case, e.g. <c>draft</c>, <c>open</c>). See <see cref="PositionStatus"/>.</summary>
     [Required(ErrorMessage = "Status is required")]
-    public string Status { get; set; } = Components.Shared.PositionStatuses.Draft;
+    public string Status { get; set; } = PositionStatus.Draft;
 }

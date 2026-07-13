@@ -15,7 +15,7 @@ namespace TabajarasInterview.Web.Components.Shared
     /// normalization already strips underscores so <c>on_hold</c> matches its
     /// existing "onhold" case with no changes needed there.
     /// </remarks>
-    public static class PositionStatuses
+    public static class PositionStatus
     {
         public const string Draft = "draft";
         public const string Open = "open";
