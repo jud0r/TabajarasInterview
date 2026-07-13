@@ -51,9 +51,9 @@ else
             <MudSelect T="string" Value="_statusFilter" ValueChanged="@(v => Apply(() => _statusFilter = v))"
                        Label="Status" Clearable="true" Dense="true" Variant="Variant.Outlined"
                        Margin="Margin.Dense" Style="width:160px;">
-                @foreach (var status in PositionStatuses.All)
+                @foreach (var status in PositionStatus.All)
                 {
-                    <MudSelectItem T="string" Value="@status">@PositionStatuses.Label(status)</MudSelectItem>
+                    <MudSelectItem T="string" Value="@status">@PositionStatus.Label(status)</MudSelectItem>
                 }
             </MudSelect>
 
@@ -138,7 +138,7 @@ else
                     }
                 </MudTd>
                 <MudTd DataLabel="Status">
-                    <StatusBadge Status="@context.Status" Text="@PositionStatuses.Label(context.Status)" />
+                    <StatusBadge Status="@context.Status" Text="@PositionStatus.Label(context.Status)" />
                 </MudTd>
                 <MudTd DataLabel="Stacks">
                     @if (context.Stacks.Count == 0)

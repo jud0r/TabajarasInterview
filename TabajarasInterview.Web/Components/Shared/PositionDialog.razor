@@ -34,9 +34,9 @@
                        Margin="Margin.Normal"
                        ReadOnly="ReadOnly"
                        Class="mb-2">
-                @foreach (var status in PositionStatuses.All)
+                @foreach (var status in PositionStatus.All)
                     {
-                        <MudSelectItem T="string" Value="@status">@PositionStatuses.Label(status)</MudSelectItem>
+                        <MudSelectItem T="string" Value="@status">@PositionStatus.Label(status)</MudSelectItem>
                     }
                 </MudSelect>
 
@@ -303,6 +303,6 @@
         public string? Description { get; set; }
 
         [Required(ErrorMessage = "Status is required")]
-        public string Status { get; set; } = PositionStatuses.Draft;
+        public string Status { get; set; } = PositionStatus.Draft;
     }
 }
