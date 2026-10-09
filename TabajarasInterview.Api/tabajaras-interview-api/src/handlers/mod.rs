@@ -4,6 +4,7 @@ pub mod candidates;
 pub mod interview_questions;
 pub mod interview_reviewers;
 pub mod interviews;
+pub mod locations;
 pub mod position_stacks;
 pub mod positions;
 pub mod questions;

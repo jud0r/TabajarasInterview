@@ -25,4 +25,8 @@ public sealed class UpdatePositionRequest
     /// <summary>Wire-format status value (snake_case, e.g. <c>draft</c>, <c>open</c>). See <see cref="PositionStatus"/>.</summary>
     [Required(ErrorMessage = "Status is required")]
     public string Status { get; set; } = Components.Shared.PositionStatus.Draft;
+
+    /// <summary>Wire-format work model (e.g. <c>remote</c>). Maps to <c>work_model</c>.</summary>
+    [Required(ErrorMessage = "Work model is required")]
+    public string WorkModel { get; set; } = Components.Shared.WorkModel.Remote;
 }

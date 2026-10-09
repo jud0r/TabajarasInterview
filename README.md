@@ -47,7 +47,7 @@ The solution follows the .NET Aspire orchestration pattern. The **AppHost** proj
 | Project | Description |
 | --- | --- |
 | `TabajarasInterview.AppHost` | The Aspire orchestrator. Declares the Rust API container and the Blazor frontend, and wires the dependencies between them. |
-| `TabajarasInterview.Web` | The Blazor Server frontend using interactive server-side rendering, output caching, and a typed `HttpClient` for backend communication. |
+The Blazor Server frontend using interactive server-side rendering, MudBlazor and JWT cookie authentication, with typed API clients for the Rust API.
 | `TabajarasInterview.ServiceDefaults` | Shared Aspire defaults applied to every service: OpenTelemetry, health checks, service discovery, and HTTP resilience. |
 
 ## Tech Stack
@@ -58,7 +58,7 @@ The solution follows the .NET Aspire orchestration pattern. The **AppHost** proj
 - **MySQL** (external database server, accessed by the Rust API)
 - **Rust API** (container resource)
 - **OpenTelemetry** (metrics, tracing, logging)
-- **Bootstrap** (frontend styling)
+- **MudBlazor** (UI components)
 
 ## Prerequisites
 
@@ -101,12 +101,18 @@ The distributed application is composed in `TabajarasInterview.AppHost/AppHost.c
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
+var jwtSecret = builder.AddParameter("jwt-secret", secret: true);
+
 // Rust API
-builder.AddContainer("rust-api", "rust-api")
-	.WithHttpEndpoint(port: 8080, targetPort: 8080);
+var rustApi = builder.AddContainer("rust-api", "rust-api")
+	.WithHttpEndpoint(port: 8080, targetPort: 8080)
+	.WithEnvironment("SECRET", jwtSecret);
 
 // Blazor
 builder.AddProject<Projects.TabajarasInterview_Web>("web-frontend")
+	.WithReference(rustApi.GetEndpoint("http"))
+	.WithEnvironment("Jwt__Secret", jwtSecret)
+	.WaitFor(rustApi)
 	.WithExternalHttpEndpoints();
 
 builder.Build().Run();
@@ -144,11 +150,23 @@ The AppHost defines `http` and `https` launch profiles in `Properties/launchSett
 
 ## Features
 
-The Blazor frontend ships with the standard Aspire starter pages:
+The Blazor frontend (MudBlazor UI, JWT cookie authentication against the Rust API) provides:
 
-- **Home** (`/`) — Landing page.
-- **Counter** (`/counter`) — Interactive counter demonstrating server-side interactivity.
-- **Weather** (`/weather`) — Sample data page rendered with streaming and output caching, served through the `WeatherApiClient`.
+- **Home** (`/`), **Login** (`/login`) and **Register** (`/register`).
+- **Dashboard** (`/dashboard`) — recruitment KPIs and charts.
+- **Candidates** (`/candidates`, `/candidates/{id}`) — candidate CRUD and candidate profile.
+- **Positions** (`/positions`) — position CRUD with stack assignment.
+- **Applications** (`/applications`) — read-only list of candidate applications across all positions (from `api/candidate_applications/by_position/{id}`).
+- **Stacks** (`/stacks`) and **Questions** (`/questions`) — CRUD for technology stacks and interview questions.
+- **Users** (`/users`) — read-only list of registered users.
+
+## Tests
+
+```bash
+dotnet test TabajarasInterview.Web.Tests
+```
+
+The `TabajarasInterview.Web.Tests` project (xUnit) covers the API response parser and the authentication state provider.
 
 ## Project Structure
 
@@ -159,10 +177,14 @@ TabajarasInterview/
 │   └── Properties/launchSettings.json
 ├── TabajarasInterview.Web/              # Blazor Server frontend
 │   ├── Program.cs                       # App startup & DI
-│   ├── WeatherApiClient.cs              # Typed HTTP client
+│   ├── Services/Api/                    # rust-api clients + response parser
+│   ├── Services/Auth/                   # Cookie/JWT auth services
+│   ├── DTOs/                            # API request/response models
 │   └── Components/
-│       ├── Pages/                       # Home, Counter, Weather, Error
+│       ├── Pages/                       # Dashboard, Candidates, Positions, Applications, Stacks, Questions, Users, Login...
+│       ├── Shared/                      # Dialogs and reusable components
 │       └── Layout/                      # MainLayout, NavMenu
+├── TabajarasInterview.Web.Tests/        # xUnit tests
 └── TabajarasInterview.ServiceDefaults/  # Shared Aspire defaults
 	└── Extensions.cs                    # Telemetry, health, discovery
 ```

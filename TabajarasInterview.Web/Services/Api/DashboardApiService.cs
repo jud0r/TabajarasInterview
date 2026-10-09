@@ -1,4 +1,4 @@
-using TabajarasInterview.Web.DTOs.Dashboard;
+﻿using TabajarasInterview.Web.DTOs.Dashboard;
 using TabajarasInterview.Web.Models;
 
 namespace TabajarasInterview.Web.Services.Api
@@ -23,11 +23,11 @@ namespace TabajarasInterview.Web.Services.Api
                 var response = await client.GetAsync(url, ct);
                 return await parser.ParseAsync<DashboardData>(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // Connectivity/serialization issues shouldn't tear down the Blazor circuit.
                 // Surface a failed result so the page can degrade gracefully.
-                return ApiResult<DashboardData>.Fail(ex.Message);
+                return ApiResult<DashboardData>.Fail(parser.Describe(ex));
             }
         }
     }

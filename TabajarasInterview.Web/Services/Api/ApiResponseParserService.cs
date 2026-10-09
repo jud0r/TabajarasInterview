@@ -3,7 +3,7 @@ using TabajarasInterview.Web.Models;
 
 namespace TabajarasInterview.Web.Services.Api
 {
-    public class ApiResponseParserService
+    public class ApiResponseParserService(ILogger<ApiResponseParserService> logger)
     {
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
         {
@@ -12,18 +12,33 @@ namespace TabajarasInterview.Web.Services.Api
 
         public async Task<ApiResult<T>> ParseAsync<T>(HttpResponseMessage httpResponse, CancellationToken ct = default)
         {
-            if (httpResponse.IsSuccessStatusCode)
+            if (!httpResponse.IsSuccessStatusCode)
             {
-                if (httpResponse.StatusCode == System.Net.HttpStatusCode.NoContent)
+                return await ParseErrorAsync<ApiResult<T>>(httpResponse, ct);
+            }
+
+            if (httpResponse.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                return ApiResult<T>.Ok(default!);
+            }
+
+            try
+            {
+                var body = await httpResponse.Content.ReadAsStringAsync(ct);
+                if (string.IsNullOrWhiteSpace(body))
                 {
                     return ApiResult<T>.Ok(default!);
                 }
 
-                var data = await httpResponse.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken: ct);
+                var data = JsonSerializer.Deserialize<T>(body, JsonOptions);
                 return ApiResult<T>.Ok(data!);
             }
-
-            return await ParseErrorAsync<ApiResult<T>>(httpResponse, ct);
+            catch (JsonException ex)
+            {
+                logger.LogError(ex, "Could not deserialize the {Type} response from {Uri}.",
+                    typeof(T).Name, httpResponse.RequestMessage?.RequestUri);
+                return ApiResult<T>.Fail("The server returned an unexpected response.");
+            }
         }
 
         public async Task<ApiResult> ParseAsync(HttpResponseMessage httpResponse, CancellationToken ct = default)
@@ -34,7 +49,20 @@ namespace TabajarasInterview.Web.Services.Api
             return await ParseErrorAsync<ApiResult>(httpResponse, ct);
         }
 
-        private static async Task<T> ParseErrorAsync<T>(HttpResponseMessage httpResponse, CancellationToken ct) where T : ApiResult, new()
+        /// <summary>
+        /// Logs an exception raised while calling the API and returns a user-safe message
+        /// (the raw exception message is never surfaced to the UI).
+        /// </summary>
+        public string Describe(Exception ex)
+        {
+            logger.LogError(ex, "API call failed.");
+
+            return ex is HttpRequestException
+                ? "Could not reach the server. Please try again."
+                : "An unexpected error occurred. Please try again.";
+        }
+
+        private async Task<T> ParseErrorAsync<T>(HttpResponseMessage httpResponse, CancellationToken ct) where T : ApiResult, new()
         {
             try
             {
@@ -43,16 +71,28 @@ namespace TabajarasInterview.Web.Services.Api
                 if (apiError?.Errors is not null)
                     return new T { Success = false, ValidationErrors = apiError.Errors };
 
-                return new T { Success = false, ErrorCode = apiError?.Code, ErrorMessage = $"{apiError?.Code}: {apiError?.Error}" };
-            }
-            catch
-            {
-                return new T
+                if (apiError is not null && (!string.IsNullOrWhiteSpace(apiError.Code) || !string.IsNullOrWhiteSpace(apiError.Error)))
                 {
-                    Success = false,
-                    ErrorMessage = $"HTTP {(int)httpResponse.StatusCode}: {httpResponse.ReasonPhrase}"
-                };
+                    var message = string.IsNullOrWhiteSpace(apiError.Code)
+                        ? apiError.Error
+                        : string.IsNullOrWhiteSpace(apiError.Error)
+                            ? apiError.Code
+                            : $"{apiError.Code}: {apiError.Error}";
+
+                    return new T { Success = false, ErrorCode = apiError.Code, ErrorMessage = message };
+                }
             }
+            catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidOperationException)
+            {
+                logger.LogWarning(ex, "Could not parse the error body of HTTP {StatusCode} from {Uri}.",
+                    (int)httpResponse.StatusCode, httpResponse.RequestMessage?.RequestUri);
+            }
+
+            return new T
+            {
+                Success = false,
+                ErrorMessage = $"HTTP {(int)httpResponse.StatusCode}: {httpResponse.ReasonPhrase}"
+            };
         }
     }
 }
