@@ -1,4 +1,4 @@
-using TabajarasInterview.Web.DTOs;
+﻿using TabajarasInterview.Web.DTOs;
 using TabajarasInterview.Web.Models;
 
 namespace TabajarasInterview.Web.Services.Api
@@ -23,9 +23,9 @@ namespace TabajarasInterview.Web.Services.Api
                 var response = await client.GetAsync("api/questions/get_all", ct);
                 return await parser.ParseAsync<List<QuestionResponse>>(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult<List<QuestionResponse>>.Fail(ex.Message);
+                return ApiResult<List<QuestionResponse>>.Fail(parser.Describe(ex));
             }
         }
 
@@ -38,9 +38,9 @@ namespace TabajarasInterview.Web.Services.Api
                 var response = await client.GetAsync($"api/questions/get/{id}", ct);
                 return await parser.ParseAsync<QuestionResponse>(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult<QuestionResponse>.Fail(ex.Message);
+                return ApiResult<QuestionResponse>.Fail(parser.Describe(ex));
             }
         }
 
@@ -60,9 +60,9 @@ namespace TabajarasInterview.Web.Services.Api
                 var response = await client.PostAsJsonAsync("api/questions/create", payload, ct);
                 return await parser.ParseAsync<QuestionResponse>(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult<QuestionResponse>.Fail(ex.Message);
+                return ApiResult<QuestionResponse>.Fail(parser.Describe(ex));
             }
         }
 
@@ -82,9 +82,9 @@ namespace TabajarasInterview.Web.Services.Api
                 var response = await client.PutAsJsonAsync($"api/questions/update/{id}", payload, ct);
                 return await parser.ParseAsync<QuestionResponse>(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult<QuestionResponse>.Fail(ex.Message);
+                return ApiResult<QuestionResponse>.Fail(parser.Describe(ex));
             }
         }
 
@@ -97,9 +97,9 @@ namespace TabajarasInterview.Web.Services.Api
                 var response = await client.DeleteAsync($"api/questions/delete/{id}", ct);
                 return await parser.ParseAsync(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult.Fail(ex.Message);
+                return ApiResult.Fail(parser.Describe(ex));
             }
         }
     }

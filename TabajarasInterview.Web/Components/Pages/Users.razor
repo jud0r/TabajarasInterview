@@ -1,0 +1,160 @@
+@page "/users"
+@attribute [Authorize]
+@implements IDisposable
+@inject IUserApiService UserApi
+
+<PageTitle>Users</PageTitle>
+
+<div class="d-flex flex-wrap align-center mb-4">
+    <div class="flex-grow-1 mr-4">
+        <MudText Typo="Typo.h4">Users</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Registered platform users</MudText>
+    </div>
+    <MudTooltip Text="Refresh">
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" />
+    </MudTooltip>
+</div>
+
+@if (_loading)
+{
+    <LoadingState SkeletonRows="5" SkeletonHeight="52px" Message="Loading users…" />
+}
+else if (_error is not null)
+{
+    <ErrorState Title="Could not load users" Message="@_error" OnRetry="ReloadAsync" />
+}
+else
+{
+    <MudPaper Elevation="1" Class="pa-4 rounded-lg mb-4">
+        <div class="d-flex flex-wrap align-center" style="gap: .75rem;">
+            <MudTextField @bind-Value="_searchString"
+                          Immediate="true"
+                          Placeholder="Search by name or email"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Clearable="true"
+                          Style="width:300px;" />
+            <MudSpacer />
+            <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
+                @FilteredCount of @_users.Count user(s)
+            </MudText>
+        </div>
+    </MudPaper>
+
+    @if (_users.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.ManageAccounts"
+                    Title="No users found"
+                    Description="No users are registered yet." />
+    }
+    else if (FilteredCount == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.SearchOff"
+                    Title="No matching users"
+                    Description="Try adjusting your search." />
+    }
+    else
+    {
+        <MudTable T="UserResponse"
+                  Items="_users"
+                  Filter="FilterFunc"
+                  Hover="true"
+                  Striped="true"
+                  Elevation="2"
+                  Breakpoint="Breakpoint.Sm"
+                  AllowUnsorted="false">
+            <HeaderContent>
+                <MudTh>
+                    <MudTableSortLabel SortBy="new Func<UserResponse, object>(x => x.FullName)"
+                                       InitialDirection="SortDirection.Ascending">
+                        Name
+                    </MudTableSortLabel>
+                </MudTh>
+                <MudTh>Email</MudTh>
+                <MudTh>
+                    <MudTableSortLabel SortBy="new Func<UserResponse, object>(x => x.CreatedAt)">Created Date</MudTableSortLabel>
+                </MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">
+                    <MudText Typo="Typo.body1" Class="font-weight-medium">@context.FullName</MudText>
+                </MudTd>
+                <MudTd DataLabel="Email">@context.Email</MudTd>
+                <MudTd DataLabel="Created Date">@context.CreatedAt.ToString("yyyy-MM-dd")</MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    }
+}
+
+@code {
+    private List<UserResponse> _users = [];
+    private bool _loading = true;
+    private string? _error;
+    private string? _searchString;
+    private CancellationTokenSource? _cts;
+
+    private int FilteredCount => _users.Count(FilterFunc);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        try
+        {
+            var result = await UserApi.GetUsersAsync(token);
+            if (result is { Success: true, Data: not null })
+            {
+                _users = result.Data;
+            }
+            else
+            {
+                _error = result.ErrorMessage ?? "Could not load users.";
+                _users = [];
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer load superseded this one; keep the latest state.
+        }
+        catch (Exception ex)
+        {
+            _error = $"Unexpected error: {ex.Message}";
+            _users = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Task ReloadAsync() => LoadAsync();
+
+    private bool FilterFunc(UserResponse user)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+        {
+            return true;
+        }
+
+        return user.FullName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || user.Email.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void Dispose() => _cts?.Cancel();
+}

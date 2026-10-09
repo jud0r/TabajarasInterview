@@ -111,6 +111,7 @@ else
                 </MudTh>
                 <MudTh>Description</MudTh>
                 <MudTh>Status</MudTh>
+                <MudTh>Work model</MudTh>
                 <MudTh>Stacks</MudTh>
                 <MudTh>
                     <MudTableSortLabel SortBy="new Func<PositionResponse, object>(x => x.CreatedAt)">
@@ -140,6 +141,7 @@ else
                 <MudTd DataLabel="Status">
                     <StatusBadge Status="@context.Status" Text="@PositionStatus.Label(context.Status)" />
                 </MudTd>
+                <MudTd DataLabel="Work model">@Components.Shared.WorkModel.Label(context.WorkModel)</MudTd>
                 <MudTd DataLabel="Stacks">
                     @if (context.Stacks.Count == 0)
                     {

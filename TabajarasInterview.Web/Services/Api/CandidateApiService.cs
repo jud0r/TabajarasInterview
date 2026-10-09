@@ -1,4 +1,4 @@
-using TabajarasInterview.Web.DTOs;
+﻿using TabajarasInterview.Web.DTOs;
 using TabajarasInterview.Web.DTOs.Candidate;
 using TabajarasInterview.Web.Models;
 
@@ -80,11 +80,11 @@ namespace TabajarasInterview.Web.Services.Api
                 var response = await client.GetAsync($"api/candidates/{candidateId}/positions", ct);
                 return await parser.ParseAsync<List<CandidateApplicationResponse>>(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // Connectivity/serialization issues shouldn't tear down the Blazor circuit;
                 // surface a failed result so the page can fall back to sample data.
-                return ApiResult<List<CandidateApplicationResponse>>.Fail(ex.Message);
+                return ApiResult<List<CandidateApplicationResponse>>.Fail(parser.Describe(ex));
             }
         }
 
@@ -97,9 +97,9 @@ namespace TabajarasInterview.Web.Services.Api
                 var response = await client.GetAsync($"api/candidates/{candidateId}/timeline", ct);
                 return await parser.ParseAsync<List<TimelineEvent>>(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult<List<TimelineEvent>>.Fail(ex.Message);
+                return ApiResult<List<TimelineEvent>>.Fail(parser.Describe(ex));
             }
         }
     }

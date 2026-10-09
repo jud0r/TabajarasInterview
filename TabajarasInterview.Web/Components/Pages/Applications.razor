@@ -1,0 +1,255 @@
+@page "/applications"
+@attribute [Authorize]
+@implements IDisposable
+@inject IApplicationApiService ApplicationApi
+@inject IPositionApiService PositionApi
+@inject ICandidateApiService CandidateApi
+@inject NavigationManager Navigation
+
+<PageTitle>Applications</PageTitle>
+
+<div class="d-flex flex-wrap align-center mb-4">
+    <div class="flex-grow-1 mr-4">
+        <MudText Typo="Typo.h4">Applications</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Candidate applications across all positions</MudText>
+    </div>
+    <MudTooltip Text="Refresh">
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" />
+    </MudTooltip>
+</div>
+
+@if (_loading)
+{
+    <LoadingState SkeletonRows="5" SkeletonHeight="52px" Message="Loading applications…" />
+}
+else if (_error is not null)
+{
+    <ErrorState Title="Could not load applications" Message="@_error" OnRetry="ReloadAsync" />
+}
+else
+{
+    <MudPaper Elevation="1" Class="pa-4 rounded-lg mb-4">
+        <div class="d-flex flex-wrap align-center" style="gap: .75rem;">
+            <MudTextField @bind-Value="_searchString"
+                          Immediate="true"
+                          Placeholder="Search by candidate or position"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Clearable="true"
+                          Style="width:300px;" />
+
+            <MudSelect T="string" Value="_statusFilter" ValueChanged="@(v => Apply(() => _statusFilter = v))"
+                       Label="Status" Clearable="true" Dense="true" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Style="width:180px;">
+                @foreach (var status in AvailableStatuses)
+                {
+                    <MudSelectItem T="string" Value="@status">@StatusVisuals.Label(status)</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSpacer />
+            <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
+                @FilteredCount of @_rows.Count application(s)
+            </MudText>
+        </div>
+    </MudPaper>
+
+    @if (_rows.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.Assignment"
+                    Title="No applications yet"
+                    Description="Applications appear here once candidates apply to a position." />
+    }
+    else if (FilteredCount == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.SearchOff"
+                    Title="No matching applications"
+                    Description="Try adjusting your search or filters." />
+    }
+    else
+    {
+        <MudTable T="ApplicationRow"
+                  Items="_rows"
+                  Filter="FilterFunc"
+                  Hover="true"
+                  Striped="true"
+                  Elevation="2"
+                  Breakpoint="Breakpoint.Sm"
+                  AllowUnsorted="false">
+            <HeaderContent>
+                <MudTh>
+                    <MudTableSortLabel SortBy="new Func<ApplicationRow, object>(x => x.CandidateName)">Candidate</MudTableSortLabel>
+                </MudTh>
+                <MudTh>
+                    <MudTableSortLabel SortBy="new Func<ApplicationRow, object>(x => x.PositionTitle)">Position</MudTableSortLabel>
+                </MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>
+                    <MudTableSortLabel SortBy="new Func<ApplicationRow, object>(x => x.Application.StartedAt ?? DateTime.MinValue)"
+                                       InitialDirection="SortDirection.Descending">
+                        Started
+                    </MudTableSortLabel>
+                </MudTh>
+                <MudTh>Finished</MudTh>
+                <MudTh>Score</MudTh>
+                <MudTh Style="text-align:right;">Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Candidate">
+                    <MudText Typo="Typo.body1" Class="font-weight-medium">@context.CandidateName</MudText>
+                </MudTd>
+                <MudTd DataLabel="Position">@context.PositionTitle</MudTd>
+                <MudTd DataLabel="Status">
+                    <StatusBadge Status="@context.Application.Status" />
+                </MudTd>
+                <MudTd DataLabel="Started">@FormatDate(context.Application.StartedAt)</MudTd>
+                <MudTd DataLabel="Finished">@FormatDate(context.Application.FinishedAt)</MudTd>
+                <MudTd DataLabel="Score">@(context.Application.FinalScore is { } score ? score.ToString("0.0") : "—")</MudTd>
+                <MudTd DataLabel="Actions" Style="text-align:right;">
+                    <MudTooltip Text="View candidate">
+                        <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
+                                       Size="Size.Small"
+                                       OnClick="@(() => Navigation.NavigateTo($"/candidates/{context.Application.CandidateId}"))" />
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    }
+}
+
+@code {
+    private sealed record ApplicationRow(ApplicationResponse Application, string CandidateName, string PositionTitle);
+
+    private List<ApplicationRow> _rows = [];
+    private bool _loading = true;
+    private string? _error;
+    private string? _searchString;
+    private string? _statusFilter;
+    private CancellationTokenSource? _cts;
+
+    private int FilteredCount => _rows.Count(FilterFunc);
+
+    private IEnumerable<string> AvailableStatuses =>
+        _rows.Select(r => r.Application.Status)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        try
+        {
+            var positionsTask = PositionApi.GetPositionsAsync(token);
+            var candidatesTask = CandidateApi.GetCandidatesAsync(token);
+            await Task.WhenAll(positionsTask, candidatesTask);
+
+            var positionsResult = positionsTask.Result;
+            var candidatesResult = candidatesTask.Result;
+
+            if (positionsResult is not { Success: true, Data: not null })
+            {
+                _error = positionsResult.ErrorMessage ?? "Could not load positions.";
+                _rows = [];
+                return;
+            }
+
+            if (candidatesResult is not { Success: true, Data: not null })
+            {
+                _error = candidatesResult.ErrorMessage ?? "Could not load candidates.";
+                _rows = [];
+                return;
+            }
+
+            var positions = positionsResult.Data;
+            var candidates = candidatesResult.Data.ToDictionary(c => c.Id);
+
+            var applicationResults = await Task.WhenAll(
+                positions.Select(p => ApplicationApi.GetApplicationsByPositionAsync(p.Id, token)));
+
+            var failed = applicationResults.FirstOrDefault(r => r is not { Success: true });
+            if (failed is not null)
+            {
+                _error = failed.ErrorMessage ?? "Could not load applications.";
+                _rows = [];
+                return;
+            }
+
+            var rows = new List<ApplicationRow>();
+            for (var i = 0; i < positions.Count; i++)
+            {
+                foreach (var application in applicationResults[i].Data ?? [])
+                {
+                    var candidateName = candidates.TryGetValue(application.CandidateId, out var candidate)
+                        ? candidate.FullName
+                        : $"Candidate #{application.CandidateId}";
+
+                    rows.Add(new ApplicationRow(application, candidateName, positions[i].Title));
+                }
+            }
+
+            _rows = rows;
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer load superseded this one; keep the latest state.
+        }
+        catch (Exception ex)
+        {
+            _error = $"Unexpected error: {ex.Message}";
+            _rows = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Task ReloadAsync() => LoadAsync();
+
+    private bool FilterFunc(ApplicationRow row)
+    {
+        if (!string.IsNullOrWhiteSpace(_searchString)
+            && !row.CandidateName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            && !row.PositionTitle.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_statusFilter)
+            && !string.Equals(row.Application.Status, _statusFilter, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static string FormatDate(DateTime? value) => value?.ToString("yyyy-MM-dd") ?? "—";
+
+    private void Apply(Action mutate)
+    {
+        mutate();
+        StateHasChanged();
+    }
+
+    public void Dispose() => _cts?.Cancel();
+}

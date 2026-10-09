@@ -1,4 +1,4 @@
-using TabajarasInterview.Web.DTOs;
+﻿using TabajarasInterview.Web.DTOs;
 using TabajarasInterview.Web.Models;
 
 namespace TabajarasInterview.Web.Services.Api
@@ -23,9 +23,9 @@ namespace TabajarasInterview.Web.Services.Api
                 var response = await client.GetAsync("api/positions/get_all", ct);
                 return await parser.ParseAsync<List<PositionResponse>>(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult<List<PositionResponse>>.Fail(ex.Message);
+                return ApiResult<List<PositionResponse>>.Fail(parser.Describe(ex));
             }
         }
 
@@ -38,9 +38,9 @@ namespace TabajarasInterview.Web.Services.Api
                 var response = await client.GetAsync($"api/positions/get/{id}", ct);
                 return await parser.ParseAsync<PositionResponse>(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult<PositionResponse>.Fail(ex.Message);
+                return ApiResult<PositionResponse>.Fail(parser.Describe(ex));
             }
         }
 
@@ -53,15 +53,16 @@ namespace TabajarasInterview.Web.Services.Api
                 {
                     title = request.Title,
                     description = request.Description,
-                    status = request.Status
+                    status = request.Status,
+                    work_model = request.WorkModel
                 };
 
                 var response = await client.PostAsJsonAsync("api/positions/create", payload, ct);
                 return await parser.ParseAsync<PositionResponse>(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult<PositionResponse>.Fail(ex.Message);
+                return ApiResult<PositionResponse>.Fail(parser.Describe(ex));
             }
         }
 
@@ -74,15 +75,16 @@ namespace TabajarasInterview.Web.Services.Api
                 {
                     title = request.Title,
                     description = request.Description,
-                    status = request.Status
+                    status = request.Status,
+                    work_model = request.WorkModel
                 };
 
                 var response = await client.PutAsJsonAsync($"api/positions/update/{id}", payload, ct);
                 return await parser.ParseAsync<PositionResponse>(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult<PositionResponse>.Fail(ex.Message);
+                return ApiResult<PositionResponse>.Fail(parser.Describe(ex));
             }
         }
 
@@ -95,9 +97,9 @@ namespace TabajarasInterview.Web.Services.Api
                 var response = await client.DeleteAsync($"api/positions/delete/{id}", ct);
                 return await parser.ParseAsync(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult.Fail(ex.Message);
+                return ApiResult.Fail(parser.Describe(ex));
             }
         }
 
@@ -133,9 +135,9 @@ namespace TabajarasInterview.Web.Services.Api
                     InterviewCount = interviewCount
                 });
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult<PositionStatsResponse>.Fail(ex.Message);
+                return ApiResult<PositionStatsResponse>.Fail(parser.Describe(ex));
             }
         }
 
@@ -148,9 +150,9 @@ namespace TabajarasInterview.Web.Services.Api
                 var response = await client.PostAsync($"api/positions/get/{positionId}/stacks/{stackId}", null, ct);
                 return await parser.ParseAsync<List<StackResponse>>(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult<List<StackResponse>>.Fail(ex.Message);
+                return ApiResult<List<StackResponse>>.Fail(parser.Describe(ex));
             }
         }
 
@@ -163,9 +165,9 @@ namespace TabajarasInterview.Web.Services.Api
                 var response = await client.DeleteAsync($"api/positions/get/{positionId}/stacks/{stackId}", ct);
                 return await parser.ParseAsync<List<StackResponse>>(response, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                return ApiResult<List<StackResponse>>.Fail(ex.Message);
+                return ApiResult<List<StackResponse>>.Fail(parser.Describe(ex));
             }
         }
 

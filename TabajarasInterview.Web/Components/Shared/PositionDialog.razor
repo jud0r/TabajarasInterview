@@ -40,6 +40,19 @@
                     }
                 </MudSelect>
 
+                <MudSelect T="string" @bind-Value="_model.WorkModel"
+                           For="@(() => _model.WorkModel)"
+                           Label="Work model"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Normal"
+                           ReadOnly="ReadOnly"
+                           Class="mb-2">
+                    @foreach (var wm in WorkModel.All)
+                    {
+                        <MudSelectItem T="string" Value="@wm">@WorkModel.Label(wm)</MudSelectItem>
+                    }
+                </MudSelect>
+
                 @if (!ReadOnly)
                 {
                     @if (_loadingStacks)
@@ -173,6 +186,7 @@
             _model.Title = Position.Title;
             _model.Description = Position.Description;
             _model.Status = Position.Status;
+            _model.WorkModel = string.IsNullOrWhiteSpace(Position.WorkModel) ? WorkModel.Remote : Position.WorkModel;
             _selectedStackIds = Position.Stacks.Select(s => s.Id).ToHashSet();
             _saveLabel = "Save changes";
         }
@@ -231,13 +245,15 @@
             {
                 Title = _model.Title,
                 Description = _model.Description,
-                Status = _model.Status
+                Status = _model.Status,
+                WorkModel = _model.WorkModel
             })
             : await PositionApi.UpdatePositionAsync(Position.Id, new UpdatePositionRequest
             {
                 Title = _model.Title,
                 Description = _model.Description,
-                Status = _model.Status
+                Status = _model.Status,
+                WorkModel = _model.WorkModel
             });
 
         if (result is not { Success: true, Data: not null })
@@ -304,5 +320,8 @@
 
         [Required(ErrorMessage = "Status is required")]
         public string Status { get; set; } = PositionStatus.Draft;
+
+        [Required(ErrorMessage = "Work model is required")]
+        public string WorkModel { get; set; } = Components.Shared.WorkModel.Remote;
     }
 }

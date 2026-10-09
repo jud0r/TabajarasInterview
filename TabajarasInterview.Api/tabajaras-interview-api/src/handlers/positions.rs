@@ -7,8 +7,9 @@ use utoipa_axum::routes;
 use validator::Validate;
 
 use crate::auth::extractor::AuthUser;
-use crate::entities::{candidate_applications, candidates, position_stacks, positions, stacks};
+use crate::entities::{candidate_applications, candidates, locations, position_locations, position_stacks, positions, stacks};
 use crate::handlers::candidates::{CandidateResponse, to_response as candidate_to_response};
+use crate::handlers::locations::LocationResponse;
 use crate::handlers::stacks::StackResponse;
 
 /// Build the OpenAPI-aware router for the position endpoints.
@@ -22,6 +23,8 @@ pub fn router() -> OpenApiRouter<DatabaseConnection> {
         .routes(routes!(get_position_candidates))
         .routes(routes!(get_position_stacks))
         .routes(routes!(assign_position_stack, remove_position_stack))
+        .routes(routes!(get_position_locations))
+        .routes(routes!(assign_position_location, remove_position_location))
 }
 
 /// Possible statuses for a position.
@@ -66,16 +69,54 @@ impl std::str::FromStr for PositionStatus {
     }
 }
 
+/// Possible work models for a position.
+///
+/// The serialized snake_case value is what gets stored in the
+/// `positions.work_model` column.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkModel {
+    Remote,
+    Hybrid,
+    Onsite,
+}
+
+impl WorkModel {
+    /// Returns the canonical string stored in the database.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            WorkModel::Remote => "remote",
+            WorkModel::Hybrid => "hybrid",
+            WorkModel::Onsite => "onsite",
+        }
+    }
+}
+
+impl std::str::FromStr for WorkModel {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "remote" => Ok(WorkModel::Remote),
+            "hybrid" => Ok(WorkModel::Hybrid),
+            "onsite" => Ok(WorkModel::Onsite),
+            other => Err(other.to_string()),
+        }
+    }
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct PositionResponse {
     pub id: i32,
     pub title: String,
     pub description: Option<String>,
     pub status: PositionStatus,
+    pub work_model: WorkModel,
     pub created_by: i32,
     pub updated_at: Option<sea_orm::prelude::DateTime>,
     pub created_at: sea_orm::prelude::DateTime,
     pub stacks: Vec<StackResponse>,
+    pub locations: Vec<LocationResponse>,
 }
 
 #[derive(Deserialize, Validate, ToSchema)]
@@ -84,6 +125,7 @@ pub struct CreatePositionRequest {
     pub title: String,
     pub description: Option<String>,
     pub status: PositionStatus,
+    pub work_model: WorkModel,
 }
 
 #[derive(Deserialize, Validate, ToSchema)]
@@ -92,6 +134,7 @@ pub struct UpdatePositionRequest {
     pub title: Option<String>,
     pub description: Option<String>,
     pub status: Option<PositionStatus>,
+    pub work_model: Option<WorkModel>,
 }
 
 pub fn to_response(model: positions::Model) -> Result<PositionResponse, (StatusCode, &'static str)> {
@@ -101,11 +144,43 @@ pub fn to_response(model: positions::Model) -> Result<PositionResponse, (StatusC
         description: model.description,
         status: model.status.parse::<PositionStatus>()
             .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Unknown position status"))?,
+        work_model: model.work_model.parse::<WorkModel>()
+            .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Unknown work model"))?,
         created_by: model.created_by,
         updated_at: model.updated_at,
         created_at: model.created_at,
         stacks: Vec::new(),
+        locations: Vec::new(),
     })
+}
+
+/// Loads the locations linked to a position through the `position_locations` join table.
+async fn load_position_locations(
+    db: &DatabaseConnection,
+    position_id: i32,
+) -> Result<Vec<LocationResponse>, (StatusCode, &'static str)> {
+    let links = position_locations::Entity::find()
+        .filter(position_locations::Column::PositionId.eq(position_id))
+        .filter(position_locations::Column::DeletedAt.is_null())
+        .all(db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?;
+
+    let location_ids: Vec<i32> = links.iter().map(|l| l.location_id).collect();
+
+    let found = locations::Entity::find()
+        .filter(locations::Column::Id.is_in(location_ids))
+        .all(db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?;
+
+    Ok(found.into_iter().map(LocationResponse::from).collect())
 }
 
 /// Loads the active stacks linked to a position through the `position_stacks` join table.
@@ -178,6 +253,7 @@ pub async fn get_positions(
     for position in positions {
         let mut item = to_response(position)?;
         item.stacks = load_position_stacks(&db, item.id).await?;
+        item.locations = load_position_locations(&db, item.id).await?;
         response.push(item);
     }
 
@@ -211,6 +287,7 @@ pub async fn create_position(
         title: Set(payload.title),
         description: Set(payload.description),
         status: Set(payload.status.as_str().to_string()),
+        work_model: Set(payload.work_model.as_str().to_string()),
         created_by: Set(user.0.id),
         created_at: Set(chrono::Utc::now().naive_utc()),
         ..Default::default()
@@ -260,6 +337,7 @@ pub async fn get_position(
 
     let mut response = to_response(position)?;
     response.stacks = load_position_stacks(&db, id).await?;
+    response.locations = load_position_locations(&db, id).await?;
 
     Ok(Json(response))
 }
@@ -314,6 +392,10 @@ pub async fn update_position(
         active_position.status = Set(status.as_str().to_string());
     }
 
+    if let Some(work_model) = payload.work_model {
+        active_position.work_model = Set(work_model.as_str().to_string());
+    }
+
     active_position.updated_at = Set(Some(chrono::Utc::now().naive_utc()));
 
     let position = active_position
@@ -326,6 +408,9 @@ pub async fn update_position(
 
     let mut response = to_response(position).map_err(|(s, m)| (s, m.to_string()))?;
     response.stacks = load_position_stacks(&db, id)
+        .await
+        .map_err(|(s, m)| (s, m.to_string()))?;
+    response.locations = load_position_locations(&db, id)
         .await
         .map_err(|(s, m)| (s, m.to_string()))?;
 
@@ -604,6 +689,176 @@ pub async fn remove_position_stack(
         })?;
 
     let response = load_position_stacks(&db, id).await?;
+
+    Ok(Json(response))
+}
+
+#[utoipa::path(
+    get,
+    path = "/get/{id}/locations",
+    tag = "positions",
+    security(("bearer_auth" = [])),
+    params(("id" = i32, Path, description = "Position id")),
+    responses(
+        (status = 200, description = "List locations of a position", body = [LocationResponse]),
+        (status = 401, description = "Unauthorized"),
+        (status = 404, description = "Position not found")
+    )
+)]
+#[axum::debug_handler]
+pub async fn get_position_locations(
+    State(db): State<DatabaseConnection>,
+    _user: AuthUser,
+    Path(id): Path<i32>,
+) -> Result<Json<Vec<LocationResponse>>, (StatusCode, &'static str)> {
+
+    positions::Entity::find_by_id(id)
+        .filter(positions::Column::DeletedAt.is_null())
+        .one(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?
+        .ok_or((StatusCode::NOT_FOUND, "Position not found"))?;
+
+    let response = load_position_locations(&db, id).await?;
+
+    Ok(Json(response))
+}
+
+#[utoipa::path(
+    post,
+    path = "/get/{id}/locations/{location_id}",
+    tag = "positions",
+    security(("bearer_auth" = [])),
+    params(
+        ("id" = i32, Path, description = "Position id"),
+        ("location_id" = i32, Path, description = "Location id")
+    ),
+    responses(
+        (status = 201, description = "Location assigned to the position", body = [LocationResponse]),
+        (status = 401, description = "Unauthorized"),
+        (status = 404, description = "Position or location not found"),
+        (status = 409, description = "Location already assigned to this position")
+    )
+)]
+#[axum::debug_handler]
+pub async fn assign_position_location(
+    State(db): State<DatabaseConnection>,
+    _user: AuthUser,
+    Path((id, location_id)): Path<(i32, i32)>,
+) -> Result<(StatusCode, Json<Vec<LocationResponse>>), (StatusCode, &'static str)> {
+
+    positions::Entity::find_by_id(id)
+        .filter(positions::Column::DeletedAt.is_null())
+        .one(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?
+        .ok_or((StatusCode::NOT_FOUND, "Position not found"))?;
+
+    locations::Entity::find_by_id(location_id)
+        .one(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?
+        .ok_or((StatusCode::NOT_FOUND, "Location not found"))?;
+
+    // Soft-deleted links still exist physically; revive them instead of colliding on the composite key.
+    let existing = position_locations::Entity::find_by_id((id, location_id))
+        .one(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?;
+
+    match existing {
+        Some(link) if link.deleted_at.is_none() => {
+            return Err((StatusCode::CONFLICT, "Location already assigned to this position"));
+        }
+        Some(link) => {
+            let mut active_link: position_locations::ActiveModel = link.into();
+            active_link.deleted_at = Set(None);
+            active_link.updated_at = Set(Some(chrono::Utc::now().naive_utc()));
+            active_link
+                .update(&db)
+                .await
+                .map_err(|e| {
+                    println!("DB ERROR: {:?}", e);
+                    (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+                })?;
+        }
+        None => {
+            let new_link = position_locations::ActiveModel {
+                position_id: Set(id),
+                location_id: Set(location_id),
+                created_at: Set(chrono::Utc::now().naive_utc()),
+                ..Default::default()
+            };
+            new_link
+                .insert(&db)
+                .await
+                .map_err(|e| {
+                    println!("DB ERROR: {:?}", e);
+                    (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+                })?;
+        }
+    }
+
+    let response = load_position_locations(&db, id).await?;
+
+    Ok((StatusCode::CREATED, Json(response)))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/get/{id}/locations/{location_id}",
+    tag = "positions",
+    security(("bearer_auth" = [])),
+    params(
+        ("id" = i32, Path, description = "Position id"),
+        ("location_id" = i32, Path, description = "Location id")
+    ),
+    responses(
+        (status = 200, description = "Location removed from the position", body = [LocationResponse]),
+        (status = 401, description = "Unauthorized"),
+        (status = 404, description = "Position location link not found")
+    )
+)]
+#[axum::debug_handler]
+pub async fn remove_position_location(
+    State(db): State<DatabaseConnection>,
+    _user: AuthUser,
+    Path((id, location_id)): Path<(i32, i32)>,
+) -> Result<Json<Vec<LocationResponse>>, (StatusCode, &'static str)> {
+
+    let link = position_locations::Entity::find_by_id((id, location_id))
+        .filter(position_locations::Column::DeletedAt.is_null())
+        .one(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?
+        .ok_or((StatusCode::NOT_FOUND, "Position location link not found"))?;
+
+    let mut active_link: position_locations::ActiveModel = link.into();
+    active_link.deleted_at = Set(Some(chrono::Utc::now().naive_utc()));
+    active_link
+        .update(&db)
+        .await
+        .map_err(|e| {
+            println!("DB ERROR: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "DB error")
+        })?;
+
+    let response = load_position_locations(&db, id).await?;
 
     Ok(Json(response))
 }

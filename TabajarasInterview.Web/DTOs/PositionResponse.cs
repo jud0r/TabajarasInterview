@@ -20,6 +20,9 @@ public sealed class PositionResponse
     /// </summary>
     public string Status { get; set; } = string.Empty;
 
+    /// <summary>Work model (remote, hybrid, onsite). Maps to <c>work_model</c>.</summary>
+    public string? WorkModel { get; set; }
+
     /// <summary>Id of the user (a <c>users</c> row) who created the position. Maps to <c>created_by</c>.</summary>
     public int CreatedBy { get; set; }
 

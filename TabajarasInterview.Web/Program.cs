@@ -63,9 +63,7 @@ builder.Services.AddAuthentication(options =>
             ValidateAudience = false,
 
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero,
-
-            //NameClaimType = JwtRegisteredClaimNames.UniqueName
+            ClockSkew = TimeSpan.Zero
         };
 
         // The token is delivered in the access-token cookie, not the Authorization header.
@@ -98,7 +96,6 @@ builder.Services.AddAuthentication(options =>
     .AddCookie(options =>
     {
         options.LoginPath = "/login";
-        options.LogoutPath = "/logout";
     });
 
 builder.Services.AddAuthorization();
@@ -108,9 +105,11 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddMudServices();
 
 builder.Services.AddScoped<ApiResponseParserService>();
+// Resolved through Aspire service discovery by default; set RustApi:BaseUrl to run standalone.
+var rustApiBaseUrl = builder.Configuration["RustApi:BaseUrl"] ?? "http://rust-api";
 builder.Services.AddHttpClient("rust-api", client =>
 {
-    client.BaseAddress = new("http://rust-api");
+    client.BaseAddress = new(rustApiBaseUrl);
 });
 
 builder.Services.AddScoped<IUserApiService, UserApiService>();
@@ -120,6 +119,7 @@ builder.Services.AddScoped<ICandidateApiService, CandidateApiService>();
 builder.Services.AddScoped<IStackApiService, StackApiService>();
 builder.Services.AddScoped<IQuestionApiService, QuestionApiService>();
 builder.Services.AddScoped<IPositionApiService, PositionApiService>();
+builder.Services.AddScoped<IApplicationApiService, ApplicationApiService>();
 builder.Services.AddScoped<AuthorizedHttpClientFactory>();
 builder.Services.AddScoped<CookieService>();
 builder.Services.AddScoped<AuthService>();
