@@ -13,4 +13,6 @@ builder.AddProject<Projects.TabajarasInterview_Web>("web-frontend")
     .WithEnvironment("Jwt__Secret", jwtSecret)
     .WithExternalHttpEndpoints();
 
+builder.AddProject<Projects.TabajarasInterview_Api>("tabajarasinterview-api");
+
 builder.Build().Run();
