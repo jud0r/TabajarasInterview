@@ -1,4 +1,4 @@
-using TabajarasInterview.Web.DTOs;
+﻿using TabajarasInterview.Web.DTOs;
 using TabajarasInterview.Web.DTOs.Candidate;
 using TabajarasInterview.Web.Models;
 
@@ -6,7 +6,7 @@ namespace TabajarasInterview.Web.Services.Api
 {
     /// <summary>
     /// Contract for the candidate-applications API client. All calls target the
-    /// rust-api over <c>HttpClient</c>; the Blazor app never touches the database.
+    /// API over <c>HttpClient</c>; the Blazor app never touches the database.
     /// </summary>
     public interface ICandidateApiService
     {

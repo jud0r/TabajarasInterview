@@ -1,7 +1,7 @@
-namespace TabajarasInterview.Web.DTOs;
+﻿namespace TabajarasInterview.Web.DTOs;
 
 /// <summary>
-/// Candidate returned by the rust-api (mirrors the API's <c>CandidateResponse</c>
+/// Candidate returned by the API (mirrors the API's <c>CandidateResponse</c>
 /// and the <c>candidates</c> table). Property names map to the API's snake_case
 /// JSON through <see cref="Services.Api.ApiResponseParserService"/>.
 /// </summary>

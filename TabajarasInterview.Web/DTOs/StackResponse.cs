@@ -1,7 +1,7 @@
-namespace TabajarasInterview.Web.DTOs;
+﻿namespace TabajarasInterview.Web.DTOs;
 
 /// <summary>
-/// Stack returned by the rust-api (mirrors the API's <c>StackResponse</c>
+/// Stack returned by the API (mirrors the API's <c>StackResponse</c>
 /// and the <c>stacks</c> table). Property names map to the API's snake_case
 /// JSON through <see cref="Services.Api.ApiResponseParserService"/>.
 /// </summary>

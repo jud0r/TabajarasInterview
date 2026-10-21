@@ -1,4 +1,4 @@
-using TabajarasInterview.Web.DTOs;
+﻿using TabajarasInterview.Web.DTOs;
 using TabajarasInterview.Web.Models;
 
 namespace TabajarasInterview.Web.Services.Api
@@ -8,7 +8,7 @@ namespace TabajarasInterview.Web.Services.Api
         AuthorizedHttpClientFactory authorizedFactory,
         ApiResponseParserService parser) : IUserApiService
     {
-        private const string BaseUrl = "rust-api";
+        private const string BaseUrl = "api";
 
         public async Task<ApiResult<UserResponse>> CreateAsync(RegisterRequest request, CancellationToken ct = default)
         {

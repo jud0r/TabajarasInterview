@@ -4,7 +4,7 @@ using TabajarasInterview.Web.Models;
 namespace TabajarasInterview.Web.Services.Api
 {
     /// <summary>
-    /// <see cref="IQuestionApiService"/> implementation backed by the rust-api.
+    /// <see cref="IQuestionApiService"/> implementation backed by the API.
     /// Every request is authorized (the question endpoints require a valid JWT) and
     /// parsed through <see cref="ApiResponseParserService"/> into an <see cref="ApiResult"/>.
     /// </summary>
@@ -12,7 +12,7 @@ namespace TabajarasInterview.Web.Services.Api
         AuthorizedHttpClientFactory authorizedFactory,
         ApiResponseParserService parser) : IQuestionApiService
     {
-        private const string ClientName = "rust-api";
+        private const string ClientName = "api";
 
         public async Task<ApiResult<List<QuestionResponse>>> GetQuestionsAsync(CancellationToken ct = default)
         {

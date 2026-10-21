@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using TabajarasInterview.Web.Components.Shared;
 
 namespace TabajarasInterview.Web.DTOs;
@@ -8,7 +8,7 @@ namespace TabajarasInterview.Web.DTOs;
 /// <c>CreatePositionRequest</c> (the <c>positions</c> table).
 /// </summary>
 /// <remarks>
-/// The rust-api requires <see cref="Title"/> and <see cref="Status"/>, but the
+/// The API requires <see cref="Title"/> and <see cref="Status"/>, but the
 /// Blazor form always requires a description too so a position can't be
 /// created without context for candidates/interviewers.
 /// </remarks>

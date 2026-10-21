@@ -7,7 +7,7 @@ namespace TabajarasInterview.Web.Services.Api
         AuthorizedHttpClientFactory authorizedFactory,
         ApiResponseParserService parser) : IDashboardApiService
     {
-        private const string BaseUrl = "rust-api";
+        private const string BaseUrl = "api";
 
         public async Task<ApiResult<DashboardData>> GetOverviewAsync(DashboardFilter filter, CancellationToken ct = default)
         {

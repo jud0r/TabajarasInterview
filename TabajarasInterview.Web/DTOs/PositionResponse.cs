@@ -1,7 +1,7 @@
-namespace TabajarasInterview.Web.DTOs;
+﻿namespace TabajarasInterview.Web.DTOs;
 
 /// <summary>
-/// Position returned by the rust-api (mirrors the API's <c>PositionResponse</c>
+/// Position returned by the API (mirrors the API's <c>PositionResponse</c>
 /// and the <c>positions</c> table). Property names map to the API's snake_case
 /// JSON through <see cref="Services.Api.ApiResponseParserService"/>.
 /// </summary>
@@ -14,7 +14,7 @@ public sealed class PositionResponse
     public string? Description { get; set; }
 
     /// <summary>
-    /// Lifecycle status. The rust-api's <c>PositionStatus</c> enum serializes as
+    /// Lifecycle status. The API's <c>PositionStatus</c> enum serializes as
     /// snake_case on the wire (draft, open, on_hold, closed, cancelled) regardless
     /// of the PascalCase strings stored in the database column.
     /// </summary>

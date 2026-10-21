@@ -1,10 +1,10 @@
-using TabajarasInterview.Web.DTOs;
+﻿using TabajarasInterview.Web.DTOs;
 using TabajarasInterview.Web.Models;
 
 namespace TabajarasInterview.Web.Services.Api
 {
     /// <summary>
-    /// Contract for the positions API client. All calls target the rust-api
+    /// Contract for the positions API client. All calls target the API
     /// over <c>HttpClient</c>; the Blazor app never touches the database.
     /// </summary>
     public interface IPositionApiService
@@ -27,7 +27,7 @@ namespace TabajarasInterview.Web.Services.Api
         /// <summary>
         /// Composes candidate/interview statistics for a position from
         /// <c>GET /api/candidate_applications/by_position/{id}</c> and
-        /// <c>GET /api/interviews/get_all</c> (no single rust-api endpoint returns this today).
+        /// <c>GET /api/interviews/get_all</c> (no single API endpoint returns this today).
         /// </summary>
         Task<ApiResult<PositionStatsResponse>> GetPositionStatsAsync(int id, CancellationToken ct = default);
 

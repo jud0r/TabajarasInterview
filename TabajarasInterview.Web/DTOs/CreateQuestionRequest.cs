@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace TabajarasInterview.Web.DTOs;
 
@@ -7,7 +7,7 @@ namespace TabajarasInterview.Web.DTOs;
 /// <c>CreateQuestionRequest</c> (the <c>questions</c> table).
 /// </summary>
 /// <remarks>
-/// The rust-api only requires <see cref="StackId"/> and <see cref="Question"/>,
+/// The API only requires <see cref="StackId"/> and <see cref="Question"/>,
 /// but the Blazor form always requires an acceptable answer and a level so
 /// interviewers can't create incomplete questions.
 /// </remarks>

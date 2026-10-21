@@ -1,4 +1,4 @@
-using MudBlazor;
+﻿using MudBlazor;
 
 namespace TabajarasInterview.Web.Components.Shared
 {
@@ -8,7 +8,7 @@ namespace TabajarasInterview.Web.Components.Shared
     /// <see cref="QuestionLevels"/>.
     /// </summary>
     /// <remarks>
-    /// Wire values are snake_case to match the rust-api's <c>PositionStatus</c>
+    /// Wire values are snake_case to match the API's <c>PositionStatus</c>
     /// enum (<c>#[serde(rename_all = "snake_case")]</c>): requests/responses use
     /// <c>draft</c>, <c>open</c>, <c>on_hold</c>, <c>closed</c>, <c>cancelled</c>.
     /// Badge colors/icons are resolved through <see cref="StatusVisuals"/>, whose

@@ -5,7 +5,7 @@ namespace TabajarasInterview.Web.Services.Api
 {
     public class AuthApiService(IHttpClientFactory factory, ApiResponseParserService parser) : IAuthApiService
     {
-        private const string ClientName = "rust-api";
+        private const string ClientName = "api";
 
         public async Task<ApiResult<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default)
         {
