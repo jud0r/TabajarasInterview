@@ -28,7 +28,12 @@ app.UseSwaggerUI(options =>
     options.SwaggerEndpoint(OpenApiExtensions.DocumentPath, "Tabajaras Interview API");
 });
 
-app.UseHttpsRedirection();
+// In Development the Web app calls the API over http; redirecting to https makes HttpClient
+// drop the Authorization header on the redirected request.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

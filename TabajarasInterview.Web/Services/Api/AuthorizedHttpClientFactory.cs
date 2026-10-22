@@ -34,6 +34,11 @@ namespace TabajarasInterview.Web.Services.Api
                 client.DefaultRequestHeaders.Authorization =
                     new AuthenticationHeaderValue("Bearer", token);
             }
+            else
+            {
+                serviceProvider.GetRequiredService<ILogger<AuthorizedHttpClientFactory>>()
+                    .LogWarning("No access token available (cookie and in-memory) for {Client} request.", name);
+            }
 
             return client;
         }
