@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\TabajarasInterview.Api\TabajarasInterview.Api.csproj" />
     <ProjectReference Include="..\TabajarasInterview.Web\TabajarasInterview.Web.csproj" />
   </ItemGroup>
 

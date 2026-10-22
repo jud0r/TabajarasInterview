@@ -7,16 +7,22 @@ namespace TabajarasInterview.Web.Services.Auth
 
     public class AuthService(CookieService cookies, AuthenticationStateProvider authProvider, HttpClient http)
     {
-        private const string TokenKey = "tabajaras_access_token";
-        private const string RefreshTokenKey = "tabajaras_refresh_token";
+        private const string TokenKey = "tabajarasAccessToken";
+        private const string RefreshTokenKey = "tabajarasRefreshToken";
         private const int RefreshTokenExpirationInSeconds = 60 * 60 * 24 * 30; // 30 days
+
+        private string? _accessToken;
+        private string? _refreshToken;
 
         public async Task<bool> LoginAsync(LoginResponse login)
         {
             if (string.IsNullOrWhiteSpace(login?.AccessToken))
                 return false;
 
-            await cookies.SetAsync(TokenKey, login.AccessToken, login.ExpiresIn);
+            _accessToken = login.AccessToken;
+            _refreshToken = login.RefreshToken;
+
+            await cookies.SetAsync(TokenKey, login.AccessToken, login.ExpiresIn > 0 ? login.ExpiresIn : 3600);
             await cookies.SetAsync(RefreshTokenKey, login.RefreshToken, RefreshTokenExpirationInSeconds);
 
             http.DefaultRequestHeaders.Authorization =
@@ -32,6 +38,8 @@ namespace TabajarasInterview.Web.Services.Auth
 
         public async Task LogoutAsync()
         {
+            _accessToken = null;
+            _refreshToken = null;
             await cookies.RemoveAsync(TokenKey);
             await cookies.RemoveAsync(RefreshTokenKey);
 
@@ -45,12 +53,12 @@ namespace TabajarasInterview.Web.Services.Auth
 
         public async Task<string?> GetTokenAsync()
         {
-            return await cookies.GetAsync(TokenKey);
+            return _accessToken ?? await cookies.GetAsync(TokenKey);
         }
 
         public async Task<string?> GetRefreshTokenAsync()
         {
-            return await cookies.GetAsync(RefreshTokenKey);
+            return _refreshToken ?? await cookies.GetAsync(RefreshTokenKey);
         }
 
         /// <summary>

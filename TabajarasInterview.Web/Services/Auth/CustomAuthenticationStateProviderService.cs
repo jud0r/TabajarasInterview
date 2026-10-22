@@ -10,7 +10,7 @@ namespace TabajarasInterview.Web.Services.Auth
         IHttpContextAccessor httpContextAccessor) : AuthenticationStateProvider
     {
         private readonly ClaimsPrincipal _anonymous = new(new ClaimsIdentity());
-        private const string TokenCookie = "tabajaras_access_token";
+        private const string TokenCookie = "tabajarasAccessToken";
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
@@ -43,7 +43,7 @@ namespace TabajarasInterview.Web.Services.Auth
             {
                 new Claim(ClaimTypes.Name, user.FullName),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim("user_id", user.Id.ToString())
+                new Claim("userId", user.Id.ToString())
             }, "jwt");
 
             var principal = new ClaimsPrincipal(identity);
@@ -66,7 +66,7 @@ namespace TabajarasInterview.Web.Services.Auth
             var claims = new List<Claim>();
 
             if (!string.IsNullOrEmpty(accessToken))
-                claims.Add(new Claim("access_token", accessToken));
+                claims.Add(new Claim("accessToken", accessToken));
 
             var name = source.FirstOrDefault(c => c.Type == "name")?.Value;
             if (!string.IsNullOrEmpty(name))
@@ -78,7 +78,7 @@ namespace TabajarasInterview.Web.Services.Auth
 
             var userId = source.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
             if (!string.IsNullOrEmpty(userId))
-                claims.Add(new Claim("user_id", userId));
+                claims.Add(new Claim("userId", userId));
 
             return new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt"));
         }

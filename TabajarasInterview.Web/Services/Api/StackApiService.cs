@@ -4,7 +4,7 @@ using TabajarasInterview.Web.Models;
 namespace TabajarasInterview.Web.Services.Api
 {
     /// <summary>
-    /// <see cref="IStackApiService"/> implementation backed by the rust-api.
+    /// <see cref="IStackApiService"/> implementation backed by the API.
     /// Every request is authorized (the stack endpoints require a valid JWT) and
     /// parsed through <see cref="ApiResponseParserService"/> into an <see cref="ApiResult"/>.
     /// </summary>
@@ -12,7 +12,7 @@ namespace TabajarasInterview.Web.Services.Api
         AuthorizedHttpClientFactory authorizedFactory,
         ApiResponseParserService parser) : IStackApiService
     {
-        private const string ClientName = "rust-api";
+        private const string ClientName = "api";
 
         public async Task<ApiResult<List<StackResponse>>> GetStacksAsync(CancellationToken ct = default)
         {
@@ -20,7 +20,7 @@ namespace TabajarasInterview.Web.Services.Api
             {
                 var client = await authorizedFactory.CreateClientAsync(ClientName);
 
-                var response = await client.GetAsync("api/stacks/get_all", ct);
+                var response = await client.GetAsync("api/stacks/getAll", ct);
                 return await parser.ParseAsync<List<StackResponse>>(response, ct);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)

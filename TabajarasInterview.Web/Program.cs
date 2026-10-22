@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -40,7 +40,7 @@ if (jwtKeyBytes.Length < 16)
     throw new InvalidOperationException(
         $"Jwt:Secret is too short for HS256: {jwtKeyBytes.Length} bytes ({jwtKeyBytes.Length * 8} bits). " +
         "Microsoft.IdentityModel requires at least 16 bytes (128 bits); RFC 7518 recommends 32 bytes " +
-        "(256 bits). Use the same value as the Rust API's SECRET.");
+        "(256 bits). Use the same value as the API's SECRET.");
 }
 
 builder.Services.AddAuthentication(options =>
@@ -56,7 +56,7 @@ builder.Services.AddAuthentication(options =>
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(jwtKeyBytes),
 
-            // The Rust API issues tokens without 'iss'/'aud' claims. Issuer and audience
+            // The API issues tokens without 'iss'/'aud' claims. Issuer and audience
             // validation default to true, which would reject every token, so disable them.
             // Trust is established by the symmetric signing key and the token lifetime.
             ValidateIssuer = false,
@@ -74,7 +74,7 @@ builder.Services.AddAuthentication(options =>
                 // HttpRequest.Cookies already URL-decodes the stored value, so the JWT is used
                 // as-is. Decoding again here would mangle the base64url signature segment and
                 // make every token fail signature validation (IDX10517).
-                var token = context.Request.Cookies["tabajaras_access_token"];
+                var token = context.Request.Cookies["tabajarasAccessToken"];
                 if (!string.IsNullOrEmpty(token))
                 {
                     context.Token = token;
@@ -105,11 +105,11 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddMudServices();
 
 builder.Services.AddScoped<ApiResponseParserService>();
-// Resolved through Aspire service discovery by default; set RustApi:BaseUrl to run standalone.
-var rustApiBaseUrl = builder.Configuration["RustApi:BaseUrl"] ?? "http://rust-api";
-builder.Services.AddHttpClient("rust-api", client =>
+// Resolved through Aspire service discovery by default; set Api:BaseUrl to run standalone.
+var apiBaseUrl = builder.Configuration["Api:BaseUrl"] ?? "http://tabajarasinterview-api";
+builder.Services.AddHttpClient("api", client =>
 {
-    client.BaseAddress = new(rustApiBaseUrl);
+    client.BaseAddress = new(apiBaseUrl);
 });
 
 builder.Services.AddScoped<IUserApiService, UserApiService>();

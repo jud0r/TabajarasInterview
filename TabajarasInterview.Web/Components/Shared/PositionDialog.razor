@@ -1,4 +1,4 @@
-@inject IPositionApiService PositionApi
+﻿@inject IPositionApiService PositionApi
 @inject IUserApiService UserApi
 @inject IStackApiService StackApi
 @inject ISnackbar Snackbar
@@ -275,7 +275,7 @@
     }
 
     /// <summary>
-    /// The rust-api has no bulk "set stacks" endpoint, so the selected stack ids are
+    /// The API has no bulk "set stacks" endpoint, so the selected stack ids are
     /// diffed against the position's current stacks and reconciled with individual
     /// assign/remove calls.
     /// </summary>

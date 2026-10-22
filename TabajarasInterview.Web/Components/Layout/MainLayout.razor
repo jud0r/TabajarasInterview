@@ -1,5 +1,8 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject AuthenticationStateProvider AuthProvider
 @inject IJSRuntime Js
+@inject ILogger<MainLayout> Logger
 @inject IDialogService DialogService
 @inject AuthService AuthService
 @inject IAuthApiService AuthApi
@@ -92,21 +95,30 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        if (AuthStateTask is null)
-            return;
-
-        var authState = await AuthStateTask;
-        if (authState.User.Identity?.IsAuthenticated == true)
-        {
-            var result = await UserApi.GetCurrentAsync();
-            if (result is { Success: true, Data: not null })
-            {
-                _currentUser = result.Data;
-            }
-        }
+        AuthProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
     }
+
+    private void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            var state = await task;
+            if (state.User.Identity?.IsAuthenticated == true)
+            {
+                if (_isInteractive)
+                    await LoadCurrentUserAsync(task);
+            }
+            else
+            {
+                _currentUser = null;
+                StateHasChanged();
+            }
+        });
+    }
+
+    public void Dispose() => AuthProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -114,9 +126,11 @@
         {
             _isInteractive = true;
 
+            await LoadCurrentUserAsync();
+
             try
             {
-                var saved = await Js.InvokeAsync<string?>("localStorage.getItem", "tabajaras_theme");
+                var saved = await Js.InvokeAsync<string?>("localStorage.getItem", "tabajarasTheme");
 
                 if (saved == "dark")
                 {
@@ -131,13 +145,42 @@
         }
     }
 
+    private async Task LoadCurrentUserAsync(Task<AuthenticationState>? stateTask = null)
+    {
+        stateTask ??= AuthStateTask;
+        if (stateTask is null)
+            return;
+
+        try
+        {
+            var authState = await stateTask;
+            if (authState.User.Identity?.IsAuthenticated != true)
+                return;
+
+            var result = await UserApi.GetCurrentAsync();
+            if (result is { Success: true, Data: not null })
+            {
+                _currentUser = result.Data;
+                StateHasChanged();
+            }
+            else
+            {
+                Logger.LogWarning("Could not load the current user: {Error}", result?.ErrorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not load the current user.");
+        }
+    }
+
     public async Task ToggleDarkMode()
     {
         IsDarkMode = !IsDarkMode;
 
         if (_isInteractive)
         {
-            await Js.InvokeVoidAsync("localStorage.setItem", "tabajaras_theme",
+            await Js.InvokeVoidAsync("localStorage.setItem", "tabajarasTheme",
                 IsDarkMode ? "dark" : "light");
         }
 

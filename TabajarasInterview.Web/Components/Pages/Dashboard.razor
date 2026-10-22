@@ -107,7 +107,7 @@ else if (_data is not null)
         <MudItem xs="12" sm="6" md="3">
             <KpiCard Title="Avg final score" Value="@Score(_data.Kpis.AverageFinalScore)"
                      Icon="@Icons.Material.Filled.Star" Color="Color.Tertiary"
-                     Subtitle="final_score"
+                     Subtitle="finalScore"
                      Selected="@(_selectedKpi == "score")" OnClick="@(() => SelectKpi("score"))" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
@@ -484,7 +484,7 @@ else if (_data is not null)
         <MudItem xs="12" sm="6" md="3">
             <KpiCard Title="Avg hiring time" Value="@($"{Score(_data.TimeMetrics.AverageHiringDays)} d")"
                      Icon="@Icons.Material.Filled.Timer" Color="Color.Primary"
-                     Subtitle="started_at → finished_at" />
+                     Subtitle="startedAt → finishedAt" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
             <KpiCard Title="Interview turnaround" Value="@($"{Score(_data.TimeMetrics.InterviewTurnaroundHours)} h")"

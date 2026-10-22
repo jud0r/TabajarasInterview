@@ -1,8 +1,8 @@
-namespace TabajarasInterview.Web.Components.Shared;
+﻿namespace TabajarasInterview.Web.Components.Shared;
 
 /// <summary>
-/// Work models supported for a position (positions.work_model).
-/// Wire values must match the rust-api / database column; adjust if they differ.
+/// Work models supported for a position (positions.workModel).
+/// Wire values must match the API / database column; adjust if they differ.
 /// </summary>
 public static class WorkModel
 {

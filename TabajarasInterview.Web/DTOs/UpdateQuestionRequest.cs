@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace TabajarasInterview.Web.DTOs;
 
@@ -7,7 +7,7 @@ namespace TabajarasInterview.Web.DTOs;
 /// <c>UpdateQuestionRequest</c> (the <c>questions</c> table).
 /// </summary>
 /// <remarks>
-/// The rust-api treats every field as optional, but the UI always submits a
+/// The API treats every field as optional, but the UI always submits a
 /// complete form, so every field is required here (same approach as
 /// <see cref="UpdateStackRequest"/>).
 /// </remarks>

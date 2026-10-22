@@ -1,15 +1,15 @@
-using TabajarasInterview.Web.DTOs;
+﻿using TabajarasInterview.Web.DTOs;
 using TabajarasInterview.Web.Models;
 
 namespace TabajarasInterview.Web.Services.Api
 {
     /// <summary>
-    /// Contract for the questions API client. All calls target the rust-api
+    /// Contract for the questions API client. All calls target the API
     /// over <c>HttpClient</c>; the Blazor app never touches the database.
     /// </summary>
     public interface IQuestionApiService
     {
-        /// <summary>Lists questions (<c>GET /api/questions/get_all</c>).</summary>
+        /// <summary>Lists questions (<c>GET /api/questions/getAll</c>).</summary>
         Task<ApiResult<List<QuestionResponse>>> GetQuestionsAsync(CancellationToken ct = default);
 
         /// <summary>Fetches a single question (<c>GET /api/questions/get/{id}</c>).</summary>

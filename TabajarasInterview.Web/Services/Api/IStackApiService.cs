@@ -1,15 +1,15 @@
-using TabajarasInterview.Web.DTOs;
+﻿using TabajarasInterview.Web.DTOs;
 using TabajarasInterview.Web.Models;
 
 namespace TabajarasInterview.Web.Services.Api
 {
     /// <summary>
-    /// Contract for the stacks API client. All calls target the rust-api
+    /// Contract for the stacks API client. All calls target the API
     /// over <c>HttpClient</c>; the Blazor app never touches the database.
     /// </summary>
     public interface IStackApiService
     {
-        /// <summary>Lists stacks (<c>GET /api/stacks/get_all</c>).</summary>
+        /// <summary>Lists stacks (<c>GET /api/stacks/getAll</c>).</summary>
         Task<ApiResult<List<StackResponse>>> GetStacksAsync(CancellationToken ct = default);
 
         /// <summary>Fetches a single stack (<c>GET /api/stacks/get/{id}</c>).</summary>

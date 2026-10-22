@@ -1,4 +1,4 @@
-using TabajarasInterview.Web.DTOs;
+﻿using TabajarasInterview.Web.DTOs;
 using TabajarasInterview.Web.DTOs.Candidate;
 using TabajarasInterview.Web.Models;
 
@@ -6,7 +6,7 @@ namespace TabajarasInterview.Web.Services.Api
 {
     /// <summary>
     /// Contract for the candidate-applications API client. All calls target the
-    /// rust-api over <c>HttpClient</c>; the Blazor app never touches the database.
+    /// API over <c>HttpClient</c>; the Blazor app never touches the database.
     /// </summary>
     public interface ICandidateApiService
     {
@@ -28,7 +28,7 @@ namespace TabajarasInterview.Web.Services.Api
         /// <summary>
         /// Lists the candidate's applications/positions with nested interviews, reviewers,
         /// questions and stacks (<c>GET /api/candidates/{id}/positions</c>). The API is
-        /// expected to back this endpoint with the <c>get_candidate_positions(candidate_id)</c>
+        /// expected to back this endpoint with the <c>getCandidatePositions(candidateId)</c>
         /// data source.
         /// </summary>
         Task<ApiResult<List<CandidateApplicationResponse>>> GetCandidatePositionsAsync(int candidateId, CancellationToken ct = default);

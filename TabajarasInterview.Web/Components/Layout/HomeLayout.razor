@@ -52,7 +52,7 @@
 
             try
             {
-                var saved = await Js.InvokeAsync<string?>("localStorage.getItem", "tabajaras_theme");
+                var saved = await Js.InvokeAsync<string?>("localStorage.getItem", "tabajarasTheme");
 
                 if (saved == "dark")
                 {
@@ -73,7 +73,7 @@
 
         if (_isInteractive)
         {
-            await Js.InvokeVoidAsync("localStorage.setItem", "tabajaras_theme",
+            await Js.InvokeVoidAsync("localStorage.setItem", "tabajarasTheme",
                 IsDarkMode ? "dark" : "light");
         }
 

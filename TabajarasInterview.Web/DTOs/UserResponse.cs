@@ -1,7 +1,7 @@
-namespace TabajarasInterview.Web.DTOs;
+﻿namespace TabajarasInterview.Web.DTOs;
 
 /// <summary>
-/// Authenticated user returned by the rust-api (matches the API's <c>UserResponse</c>).
+/// Authenticated user returned by the API (matches the API's <c>UserResponse</c>).
 /// </summary>
 public sealed class UserResponse
 {

@@ -1,0 +1,11 @@
+@TabajarasInterview.Api_HostAddress = http://localhost:5236
+
+GET {{TabajarasInterview.Api_HostAddress}}/openapi/v1.json
+Accept: application/json
+
+###
+
+GET {{TabajarasInterview.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

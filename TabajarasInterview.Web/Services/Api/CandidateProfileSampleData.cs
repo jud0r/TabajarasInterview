@@ -149,7 +149,7 @@ namespace TabajarasInterview.Web.Services.Api
                 new()
                 {
                     Timestamp = candidate.CreatedAt,
-                    EventType = "candidate_created",
+                    EventType = "candidateCreated",
                     Title = "Candidate created",
                     Description = $"{candidate.FullName} was added to the pipeline.",
                     Status = "Created"
@@ -163,7 +163,7 @@ namespace TabajarasInterview.Web.Services.Api
                     events.Add(new TimelineEvent
                     {
                         Timestamp = started,
-                        EventType = "application_started",
+                        EventType = "applicationStarted",
                         Title = "Application started",
                         Description = $"Applied to {app.PositionTitle}.",
                         Position = app.PositionTitle,
@@ -178,7 +178,7 @@ namespace TabajarasInterview.Web.Services.Api
                         events.Add(new TimelineEvent
                         {
                             Timestamp = scheduled,
-                            EventType = "interview_created",
+                            EventType = "interviewCreated",
                             Title = $"{interview.Type} interview scheduled",
                             Description = interview.InterviewerName is { Length: > 0 } name
                                 ? $"{interview.Name} with {name}."
@@ -194,7 +194,7 @@ namespace TabajarasInterview.Web.Services.Api
                         events.Add(new TimelineEvent
                         {
                             Timestamp = completed,
-                            EventType = "interview_completed",
+                            EventType = "interviewCompleted",
                             Title = $"{interview.Type} interview completed",
                             Description = interview.Score is { } score
                                 ? $"{interview.Name} scored {score:0.0}."
@@ -211,7 +211,7 @@ namespace TabajarasInterview.Web.Services.Api
                     events.Add(new TimelineEvent
                     {
                         Timestamp = finished,
-                        EventType = "application_finished",
+                        EventType = "applicationFinished",
                         Title = "Application finished",
                         Description = app.FinalComments is { Length: > 0 } comments
                             ? comments

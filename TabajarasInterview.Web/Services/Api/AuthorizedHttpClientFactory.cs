@@ -5,7 +5,7 @@ namespace TabajarasInterview.Web.Services.Api
 {
     public class AuthorizedHttpClientFactory(IHttpClientFactory factory, AuthService authService, IServiceProvider serviceProvider)
     {
-        public async Task<HttpClient> CreateClientAsync(string name = "rust-api")
+        public async Task<HttpClient> CreateClientAsync(string name = "api")
         {
             var client = factory.CreateClient(name);
             var token = await authService.GetTokenAsync();
@@ -33,6 +33,11 @@ namespace TabajarasInterview.Web.Services.Api
             {
                 client.DefaultRequestHeaders.Authorization =
                     new AuthenticationHeaderValue("Bearer", token);
+            }
+            else
+            {
+                serviceProvider.GetRequiredService<ILogger<AuthorizedHttpClientFactory>>()
+                    .LogWarning("No access token available (cookie and in-memory) for {Client} request.", name);
             }
 
             return client;

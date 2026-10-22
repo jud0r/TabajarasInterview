@@ -5,7 +5,7 @@ using TabajarasInterview.Web.Models;
 namespace TabajarasInterview.Web.Services.Api
 {
     /// <summary>
-    /// <see cref="ICandidateApiService"/> implementation backed by the rust-api.
+    /// <see cref="ICandidateApiService"/> implementation backed by the API.
     /// Every request is authorized (the candidate endpoints require a valid JWT) and
     /// parsed through <see cref="ApiResponseParserService"/> into an <see cref="ApiResult"/>.
     /// </summary>
@@ -13,13 +13,13 @@ namespace TabajarasInterview.Web.Services.Api
         AuthorizedHttpClientFactory authorizedFactory,
         ApiResponseParserService parser) : ICandidateApiService
     {
-        private const string ClientName = "rust-api";
+        private const string ClientName = "api";
 
         public async Task<ApiResult<List<CandidateResponse>>> GetCandidatesAsync(CancellationToken ct = default)
         {
             var client = await authorizedFactory.CreateClientAsync(ClientName);
 
-            var response = await client.GetAsync("api/candidates/get_all", ct);
+            var response = await client.GetAsync("api/candidates/getAll", ct);
             return await parser.ParseAsync<List<CandidateResponse>>(response, ct);
         }
 
@@ -36,8 +36,8 @@ namespace TabajarasInterview.Web.Services.Api
             var client = await authorizedFactory.CreateClientAsync(ClientName);
             var payload = new
             {
-                first_name = request.FirstName,
-                last_name = request.LastName,
+                firstName = request.FirstName,
+                lastName = request.LastName,
                 email = request.Email,
                 phone = request.Phone
             };
@@ -52,8 +52,8 @@ namespace TabajarasInterview.Web.Services.Api
             // The API's UpdateCandidateRequest accepts only these fields; email is immutable.
             var payload = new
             {
-                first_name = request.FirstName,
-                last_name = request.LastName,
+                firstName = request.FirstName,
+                lastName = request.LastName,
                 phone = request.Phone,
                 email= request.Email
             };
@@ -76,7 +76,7 @@ namespace TabajarasInterview.Web.Services.Api
             {
                 var client = await authorizedFactory.CreateClientAsync(ClientName);
 
-                // Backed by get_candidate_positions(candidate_id) on the API side.
+                // Backed by getCandidatePositions(candidateId) on the API side.
                 var response = await client.GetAsync($"api/candidates/{candidateId}/positions", ct);
                 return await parser.ParseAsync<List<CandidateApplicationResponse>>(response, ct);
             }

@@ -35,7 +35,7 @@ else
     {
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4" Dense="true">
             Live application data is unavailable — showing representative sample data. Implement
-            <code>GET /api/candidates/@CandidateId/positions</code> (backed by <code>get_candidate_positions</code>)
+            <code>GET /api/candidates/@CandidateId/positions</code> (backed by <code>getCandidatePositions</code>)
             and <code>GET /api/candidates/@CandidateId/timeline</code> to populate this page with real data.
         </MudAlert>
     }
@@ -253,7 +253,7 @@ else
 
             _candidate = candidateResult.Data;
 
-            // Applications/positions come from get_candidate_positions; fall back to
+            // Applications/positions come from getCandidatePositions; fall back to
             // representative sample data if the endpoint is not yet available.
             var positionsResult = await CandidateApi.GetCandidatePositionsAsync(CandidateId, token);
             if (positionsResult is { Success: true, Data: not null })
