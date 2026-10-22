@@ -1,6 +1,6 @@
 namespace TabajarasInterview.Api.Auth;
 
-/// <summary>Rust <c>TokenType</c>; serialized as snake_case ("access" / "refresh").</summary>
+/// <summary>Rust <c>TokenType</c>; serialized as camelCase ("access" / "refresh").</summary>
 public enum TokenType
 {
     Access,

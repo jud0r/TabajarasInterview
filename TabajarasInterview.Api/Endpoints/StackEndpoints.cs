@@ -28,7 +28,7 @@ public static class StackEndpoints
             .RequireAuthorization()
             .AddEndpointFilter<ApiErrorFilter>();
 
-        group.MapGet("/get_all", GetStacks).Produces<List<StackResponse>>();
+        group.MapGet("/getAll", GetStacks).Produces<List<StackResponse>>();
 
         group.MapPost("/create", CreateStack)
             .Produces<StackResponse>(StatusCodes.Status201Created)

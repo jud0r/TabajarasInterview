@@ -20,7 +20,7 @@ namespace TabajarasInterview.Web.Services.Api
             {
                 var client = await authorizedFactory.CreateClientAsync(ClientName);
 
-                var response = await client.GetAsync("api/questions/get_all", ct);
+                var response = await client.GetAsync("api/questions/getAll", ct);
                 return await parser.ParseAsync<List<QuestionResponse>>(response, ct);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -51,9 +51,9 @@ namespace TabajarasInterview.Web.Services.Api
                 var client = await authorizedFactory.CreateClientAsync(ClientName);
                 var payload = new
                 {
-                    stack_id = request.StackId,
+                    stackId = request.StackId,
                     question = request.Question,
-                    acceptable_answer = request.AcceptableAnswer,
+                    acceptableAnswer = request.AcceptableAnswer,
                     level = request.Level
                 };
 
@@ -73,9 +73,9 @@ namespace TabajarasInterview.Web.Services.Api
                 var client = await authorizedFactory.CreateClientAsync(ClientName);
                 var payload = new
                 {
-                    stack_id = request.StackId,
+                    stackId = request.StackId,
                     question = request.Question,
-                    acceptable_answer = request.AcceptableAnswer,
+                    acceptableAnswer = request.AcceptableAnswer,
                     level = request.Level
                 };
 

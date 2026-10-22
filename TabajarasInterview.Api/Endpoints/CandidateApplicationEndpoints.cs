@@ -6,7 +6,7 @@ using TabajarasInterview.Api.Models;
 
 namespace TabajarasInterview.Api.Endpoints;
 
-/// <summary>JSON uses snake_case ("offer_extended"); the database stores the PascalCase name.</summary>
+/// <summary>JSON uses camelCase ("offerExtended"); the database stores the PascalCase name.</summary>
 public enum CandidateApplicationStatus
 {
     Applied,
@@ -72,19 +72,19 @@ public sealed record UpdateCandidateApplicationRequest
     public string? FinalComments { get; init; }
 }
 
-/// <summary>Port of Rust <c>handlers/candidate_applications.rs</c>, mounted at <c>/api/candidate_applications</c>.</summary>
+/// <summary>Port of Rust <c>handlers/candidateApplications.rs</c>, mounted at <c>/api/candidateApplications</c>.</summary>
 public static class CandidateApplicationEndpoints
 {
     public static IEndpointRouteBuilder MapCandidateApplicationEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/candidate_applications")
-            .WithTags("candidate_applications")
+        var group = app.MapGroup("/api/candidateApplications")
+            .WithTags("candidateApplications")
             .RequireAuthorization()
             .AddEndpointFilter<ApiErrorFilter>();
 
-        group.MapGet("/get_all", GetAll).Produces<List<CandidateApplicationResponse>>();
-        group.MapGet("/by_candidate/{candidateId:int}", GetByCandidate).Produces<List<CandidateApplicationResponse>>();
-        group.MapGet("/by_position/{positionId:int}", GetByPosition).Produces<List<CandidateApplicationResponse>>();
+        group.MapGet("/getAll", GetAll).Produces<List<CandidateApplicationResponse>>();
+        group.MapGet("/byCandidate/{candidateId:int}", GetByCandidate).Produces<List<CandidateApplicationResponse>>();
+        group.MapGet("/byPosition/{positionId:int}", GetByPosition).Produces<List<CandidateApplicationResponse>>();
 
         group.MapPost("/create", Create)
             .Produces<CandidateApplicationResponse>(StatusCodes.Status201Created)
@@ -110,7 +110,7 @@ public static class CandidateApplicationEndpoints
     private static decimal ParseScore(string value) =>
         decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var score)
             ? score
-            : throw new ApiException(StatusCodes.Status400BadRequest, "final_score must be a valid decimal");
+            : throw new ApiException(StatusCodes.Status400BadRequest, "finalScore must be a valid decimal");
 
     private static async Task<CandidateApplication> RequireAsync(AppDbContext db, int id, bool track, CancellationToken ct)
     {

@@ -40,17 +40,17 @@ public sealed record UpdateInterviewQuestionRequest
     public string? Score { get; init; }
 }
 
-/// <summary>Port of Rust <c>handlers/interview_questions.rs</c>, mounted at <c>/api/interview_questions</c>.</summary>
+/// <summary>Port of Rust <c>handlers/interview_questions.rs</c>, mounted at <c>/api/interviewQuestions</c>.</summary>
 public static class InterviewQuestionEndpoints
 {
     public static IEndpointRouteBuilder MapInterviewQuestionEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/interview_questions")
-            .WithTags("interview_questions")
+        var group = app.MapGroup("/api/interviewQuestions")
+            .WithTags("interviewQuestions")
             .RequireAuthorization()
             .AddEndpointFilter<ApiErrorFilter>();
 
-        group.MapGet("/get_all", GetAll).Produces<List<InterviewQuestionResponse>>();
+        group.MapGet("/getAll", GetAll).Produces<List<InterviewQuestionResponse>>();
 
         group.MapPost("/create", Create)
             .Produces<InterviewQuestionResponse>(StatusCodes.Status201Created)

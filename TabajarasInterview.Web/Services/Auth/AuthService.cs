@@ -7,8 +7,8 @@ namespace TabajarasInterview.Web.Services.Auth
 
     public class AuthService(CookieService cookies, AuthenticationStateProvider authProvider, HttpClient http)
     {
-        private const string TokenKey = "tabajaras_access_token";
-        private const string RefreshTokenKey = "tabajaras_refresh_token";
+        private const string TokenKey = "tabajarasAccessToken";
+        private const string RefreshTokenKey = "tabajarasRefreshToken";
         private const int RefreshTokenExpirationInSeconds = 60 * 60 * 24 * 30; // 30 days
 
         public async Task<bool> LoginAsync(LoginResponse login)

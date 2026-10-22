@@ -3,8 +3,8 @@
 /// <summary>
 /// Candidate/interview statistics for a single position, composed client-side
 /// (by <see cref="Services.Api.PositionApiService"/>) from
-/// <c>GET /api/candidate_applications/by_position/{id}</c> and
-/// <c>GET /api/interviews/get_all</c>, since the API has no single
+/// <c>GET /api/candidateApplications/byPosition/{id}</c> and
+/// <c>GET /api/interviews/getAll</c>, since the API has no single
 /// endpoint that returns these counts directly.
 /// </summary>
 public sealed class PositionStatsResponse

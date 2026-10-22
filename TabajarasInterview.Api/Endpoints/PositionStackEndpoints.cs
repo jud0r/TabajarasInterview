@@ -21,17 +21,17 @@ public sealed record CreatePositionStackRequest
     public int StackId { get; init; }
 }
 
-/// <summary>Port of Rust <c>handlers/position_stacks.rs</c>, mounted at <c>/api/position_stacks</c>.</summary>
+/// <summary>Port of Rust <c>handlers/position_stacks.rs</c>, mounted at <c>/api/positionStacks</c>.</summary>
 public static class PositionStackEndpoints
 {
     public static IEndpointRouteBuilder MapPositionStackEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/position_stacks")
-            .WithTags("position_stacks")
+        var group = app.MapGroup("/api/positionStacks")
+            .WithTags("positionStacks")
             .RequireAuthorization()
             .AddEndpointFilter<ApiErrorFilter>();
 
-        group.MapGet("/get_all", GetAll).Produces<List<PositionStackResponse>>();
+        group.MapGet("/getAll", GetAll).Produces<List<PositionStackResponse>>();
 
         group.MapPost("/create", Create)
             .Produces<PositionStackResponse>(StatusCodes.Status201Created)

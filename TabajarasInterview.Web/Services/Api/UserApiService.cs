@@ -15,8 +15,8 @@ namespace TabajarasInterview.Web.Services.Api
             var client = factory.CreateClient(BaseUrl);
             var payload = new
             {
-                first_name = request.FirstName,
-                last_name = request.LastName,
+                firstName = request.FirstName,
+                lastName = request.LastName,
                 email = request.Email,
                 password = request.Password
             };
@@ -37,7 +37,7 @@ namespace TabajarasInterview.Web.Services.Api
         {
             var client = await authorizedFactory.CreateClientAsync(BaseUrl);
 
-            var response = await client.GetAsync("api/users/get_all", ct);
+            var response = await client.GetAsync("api/users/getAll", ct);
             return await parser.ParseAsync<List<UserResponse>>(response, ct);
         }
 
@@ -46,8 +46,8 @@ namespace TabajarasInterview.Web.Services.Api
             var client = await authorizedFactory.CreateClientAsync(BaseUrl);
             var payload = new
             {
-                first_name = request.FirstName,
-                last_name = request.LastName
+                firstName = request.FirstName,
+                lastName = request.LastName
             };
 
             var response = await client.PutAsJsonAsync("api/users/update", payload, ct);
@@ -59,8 +59,8 @@ namespace TabajarasInterview.Web.Services.Api
             var client = await authorizedFactory.CreateClientAsync(BaseUrl);
             var payload = new
             {
-                current_password = request.CurrentPassword,
-                new_password = request.NewPassword
+                currentPassword = request.CurrentPassword,
+                newPassword = request.NewPassword
             };
 
             var response = await client.PutAsJsonAsync("api/users/password", payload, ct);

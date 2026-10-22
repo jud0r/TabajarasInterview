@@ -14,13 +14,13 @@ public static class OpenApiExtensions
         ("users", "User management endpoints"),
         ("candidates", "Candidate management endpoints"),
         ("positions", "Position management endpoints"),
-        ("candidate_applications", "Candidate application management endpoints"),
+        ("candidateApplications", "Candidate application management endpoints"),
         ("stacks", "Stack management endpoints"),
         ("questions", "Question management endpoints"),
         ("interviews", "Interview management endpoints"),
-        ("interview_questions", "Interview question management endpoints"),
-        ("interview_reviewers", "Interview reviewer management endpoints"),
-        ("position_stacks", "Position stack management endpoints"),
+        ("interviewQuestions", "Interview question management endpoints"),
+        ("interviewReviewers", "Interview reviewer management endpoints"),
+        ("positionStacks", "Position stack management endpoints"),
         ("locations", "Location endpoints"),
     ];
 
@@ -35,7 +35,7 @@ public static class OpenApiExtensions
 
                 document.Components ??= new OpenApiComponents();
                 document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
-                document.Components.SecuritySchemes["bearer_auth"] = new OpenApiSecurityScheme
+                document.Components.SecuritySchemes["bearerAuth"] = new OpenApiSecurityScheme
                 {
                     Type = SecuritySchemeType.Http,
                     Scheme = "bearer",
@@ -56,7 +56,7 @@ public static class OpenApiExtensions
                     operation.Security ??= [];
                     operation.Security.Add(new OpenApiSecurityRequirement
                     {
-                        [new OpenApiSecuritySchemeReference("bearer_auth", context.Document)] = [],
+                        [new OpenApiSecuritySchemeReference("bearerAuth", context.Document)] = [],
                     });
                 }
 

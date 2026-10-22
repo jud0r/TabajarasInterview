@@ -55,7 +55,7 @@ public sealed class DashboardKpis
     public int ApplicationsInProgress { get; set; }
     public int CompletedApplications { get; set; }
 
-    /// <summary>Average of <c>candidate_applications.final_score</c>.</summary>
+    /// <summary>Average of <c>candidateApplications.finalScore</c>.</summary>
     public double AverageFinalScore { get; set; }
 
     /// <summary>Average of <c>interviews.score</c>.</summary>
@@ -93,7 +93,7 @@ public sealed class InterviewTypeStat
     public double SuccessRate { get; set; }
 }
 
-/// <summary>Reviewer performance derived from <c>interview_reviewers</c>.</summary>
+/// <summary>Reviewer performance derived from <c>interviewReviewers</c>.</summary>
 public sealed class ReviewerStat
 {
     public string Reviewer { get; set; } = string.Empty;
@@ -141,7 +141,7 @@ public sealed class PositionStat
     public string TopStack { get; set; } = string.Empty;
 }
 
-/// <summary>Stack demand derived from <c>position_stacks</c>.</summary>
+/// <summary>Stack demand derived from <c>positionStacks</c>.</summary>
 public sealed class StackDemand
 {
     public string Stack { get; set; } = string.Empty;
@@ -149,7 +149,7 @@ public sealed class StackDemand
     public int Applications { get; set; }
 }
 
-/// <summary>Question usage and difficulty derived from <c>interview_questions</c>.</summary>
+/// <summary>Question usage and difficulty derived from <c>interviewQuestions</c>.</summary>
 public sealed class QuestionStat
 {
     public string Question { get; set; } = string.Empty;
@@ -163,7 +163,7 @@ public sealed class QuestionStat
 /// <summary>Time-based hiring metrics.</summary>
 public sealed class TimeMetrics
 {
-    /// <summary>Average days between <c>started_at</c> and <c>finished_at</c> for completed applications.</summary>
+    /// <summary>Average days between <c>startedAt</c> and <c>finishedAt</c> for completed applications.</summary>
     public double AverageHiringDays { get; set; }
 
     /// <summary>Average hours between an interview being scheduled and reviewed.</summary>

@@ -3,7 +3,7 @@ using TabajarasInterview.Api.Models;
 
 namespace TabajarasInterview.Api.Dtos;
 
-/// <summary>JSON uses snake_case ("on_hold"); the database stores the PascalCase value ("OnHold").</summary>
+/// <summary>JSON uses camelCase ("onHold"); the database stores the PascalCase value ("OnHold").</summary>
 public enum PositionStatus
 {
     Draft,

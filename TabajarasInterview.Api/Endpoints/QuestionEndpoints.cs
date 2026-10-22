@@ -44,8 +44,8 @@ public static class QuestionEndpoints
             .RequireAuthorization()
             .AddEndpointFilter<ApiErrorFilter>();
 
-        group.MapGet("/get_all", GetQuestions).Produces<List<QuestionResponse>>();
-        group.MapGet("/by_stack/{stackId:int}", GetQuestionsByStack).Produces<List<QuestionResponse>>();
+        group.MapGet("/getAll", GetQuestions).Produces<List<QuestionResponse>>();
+        group.MapGet("/byStack/{stackId:int}", GetQuestionsByStack).Produces<List<QuestionResponse>>();
 
         group.MapPost("/create", CreateQuestion)
             .Produces<QuestionResponse>(StatusCodes.Status201Created)

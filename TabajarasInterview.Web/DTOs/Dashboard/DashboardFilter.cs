@@ -35,10 +35,10 @@ public sealed class DashboardFilter
             parts.Add($"to={Uri.EscapeDataString(to.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))}");
 
         if (PositionId is { } positionId)
-            parts.Add($"position_id={positionId}");
+            parts.Add($"positionId={positionId}");
 
         if (!string.IsNullOrWhiteSpace(InterviewType))
-            parts.Add($"interview_type={Uri.EscapeDataString(InterviewType)}");
+            parts.Add($"interviewType={Uri.EscapeDataString(InterviewType)}");
 
         return string.Join('&', parts);
     }

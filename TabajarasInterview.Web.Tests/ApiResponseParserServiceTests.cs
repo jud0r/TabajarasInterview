@@ -28,9 +28,9 @@ public class ApiResponseParserServiceTests
     }
 
     [Fact]
-    public async Task ParseAsync_Success_MapsSnakeCaseJson()
+    public async Task ParseAsync_Success_MapsCamelCaseJson()
     {
-        var result = await _parser.ParseAsync<Item>(Response(HttpStatusCode.OK, """{"id":7,"first_name":"Ada"}"""));
+        var result = await _parser.ParseAsync<Item>(Response(HttpStatusCode.OK, """{"id":7,"firstName":"Ada"}"""));
 
         Assert.True(result.Success);
         Assert.Equal(7, result.Data!.Id);
@@ -78,13 +78,13 @@ public class ApiResponseParserServiceTests
     [Fact]
     public async Task ParseAsync_ErrorWithCodeAndMessage_CombinesBoth()
     {
-        var json = """{"code":"not_found","error":"Missing"}""";
+        var json = """{"code":"notFound","error":"Missing"}""";
 
         var result = await _parser.ParseAsync<Item>(Response(HttpStatusCode.NotFound, json));
 
         Assert.False(result.Success);
-        Assert.Equal("not_found", result.ErrorCode);
-        Assert.Equal("not_found: Missing", result.ErrorMessage);
+        Assert.Equal("notFound", result.ErrorCode);
+        Assert.Equal("notFound: Missing", result.ErrorMessage);
     }
 
     [Fact]

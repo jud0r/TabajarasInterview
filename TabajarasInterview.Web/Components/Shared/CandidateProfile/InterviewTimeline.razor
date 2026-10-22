@@ -73,12 +73,12 @@ else
     private static (Color Color, string Icon) VisualFor(string? eventType) =>
         (eventType ?? string.Empty).ToLowerInvariant() switch
         {
-            "candidate_created" => (Color.Info, Icons.Material.Filled.PersonAdd),
-            "application_started" => (Color.Primary, Icons.Material.Filled.PostAdd),
-            "interview_created" or "interview_scheduled" => (Color.Tertiary, Icons.Material.Filled.EventNote),
-            "interview_completed" => (Color.Success, Icons.Material.Filled.EventAvailable),
-            "application_finished" => (Color.Secondary, Icons.Material.Filled.Flag),
-            "final_decision" => (Color.Warning, Icons.Material.Filled.Gavel),
+            "candidateCreated" => (Color.Info, Icons.Material.Filled.PersonAdd),
+            "applicationStarted" => (Color.Primary, Icons.Material.Filled.PostAdd),
+            "interviewCreated" or "interviewScheduled" => (Color.Tertiary, Icons.Material.Filled.EventNote),
+            "interviewCompleted" => (Color.Success, Icons.Material.Filled.EventAvailable),
+            "applicationFinished" => (Color.Secondary, Icons.Material.Filled.Flag),
+            "finalDecision" => (Color.Warning, Icons.Material.Filled.Gavel),
             _ => (Color.Default, Icons.Material.Filled.Circle)
         };
 }

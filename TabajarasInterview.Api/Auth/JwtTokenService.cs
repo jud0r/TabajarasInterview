@@ -6,7 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace TabajarasInterview.Api.Auth;
 
-/// <summary>Port of Rust <c>auth/jwt.rs</c>: HS256 tokens with claims sub, exp, id, token_type.</summary>
+/// <summary>Port of Rust <c>auth/jwt.rs</c>: HS256 tokens with claims sub, exp, id, tokenType.</summary>
 public sealed class JwtTokenService
 {
     private static readonly JsonWebTokenHandler Handler = new();
@@ -39,7 +39,7 @@ public sealed class JwtTokenService
                 ["sub"] = email,
                 ["exp"] = exp,
                 ["id"] = id,
-                ["token_type"] = tokenType.ToClaimValue(),
+                ["tokenType"] = tokenType.ToClaimValue(),
             },
             SigningCredentials = new SigningCredentials(_key, SecurityAlgorithms.HmacSha256),
         };
@@ -79,7 +79,7 @@ public sealed class JwtTokenService
         }
 
         var tokenType = TokenType.Access;
-        if (jwt.TryGetPayloadValue<string>("token_type", out var rawType))
+        if (jwt.TryGetPayloadValue<string>("tokenType", out var rawType))
         {
             if (!TokenTypeExtensions.TryParseClaimValue(rawType, out tokenType))
             {

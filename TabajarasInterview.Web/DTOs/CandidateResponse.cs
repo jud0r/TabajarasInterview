@@ -2,7 +2,7 @@
 
 /// <summary>
 /// Candidate returned by the API (mirrors the API's <c>CandidateResponse</c>
-/// and the <c>candidates</c> table). Property names map to the API's snake_case
+/// and the <c>candidates</c> table). Property names map to the API's camelCase
 /// JSON through <see cref="Services.Api.ApiResponseParserService"/>.
 /// </summary>
 public sealed class CandidateResponse
@@ -20,9 +20,9 @@ public sealed class CandidateResponse
 
     public string? Phone { get; set; }
 
-    /// <summary>Maps to <c>created_at</c>.</summary>
+    /// <summary>Maps to <c>createdAt</c>.</summary>
     public DateTime CreatedAt { get; set; }
 
-    /// <summary>Maps to <c>updated_at</c> (null until the candidate is edited).</summary>
+    /// <summary>Maps to <c>updatedAt</c> (null until the candidate is edited).</summary>
     public DateTime? UpdatedAt { get; set; }
 }

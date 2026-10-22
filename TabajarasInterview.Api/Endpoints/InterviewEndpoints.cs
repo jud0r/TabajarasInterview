@@ -6,7 +6,7 @@ using TabajarasInterview.Api.Models;
 
 namespace TabajarasInterview.Api.Endpoints;
 
-/// <summary>JSON uses snake_case; the database stores the PascalCase name.</summary>
+/// <summary>JSON uses camelCase; the database stores the PascalCase name.</summary>
 public enum InterviewType
 {
     Screening,
@@ -15,7 +15,7 @@ public enum InterviewType
     Final,
 }
 
-/// <summary>JSON uses snake_case ("in_progress", "no_show"); the database stores the PascalCase name.</summary>
+/// <summary>JSON uses camelCase ("inProgress", "noShow"); the database stores the PascalCase name.</summary>
 public enum InterviewStatus
 {
     Scheduled,
@@ -94,7 +94,7 @@ public static class InterviewEndpoints
             .RequireAuthorization()
             .AddEndpointFilter<ApiErrorFilter>();
 
-        group.MapGet("/get_all", GetAll).Produces<List<InterviewResponse>>();
+        group.MapGet("/getAll", GetAll).Produces<List<InterviewResponse>>();
 
         group.MapPost("/create", Create)
             .Produces<InterviewResponse>(StatusCodes.Status201Created)

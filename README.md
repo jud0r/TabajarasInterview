@@ -156,7 +156,7 @@ The Blazor frontend (MudBlazor UI, JWT cookie authentication against the Rust AP
 - **Dashboard** (`/dashboard`) — recruitment KPIs and charts.
 - **Candidates** (`/candidates`, `/candidates/{id}`) — candidate CRUD and candidate profile.
 - **Positions** (`/positions`) — position CRUD with stack assignment.
-- **Applications** (`/applications`) — read-only list of candidate applications across all positions (from `api/candidate_applications/by_position/{id}`).
+- **Applications** (`/applications`) — read-only list of candidate applications across all positions (from `api/candidateApplications/byPosition/{id}`).
 - **Stacks** (`/stacks`) and **Questions** (`/questions`) — CRUD for technology stacks and interview questions.
 - **Users** (`/users`) — read-only list of registered users.
 

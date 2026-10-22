@@ -40,17 +40,17 @@ public sealed record UpdateInterviewReviewerRequest
     public string? ReviewComments { get; init; }
 }
 
-/// <summary>Port of Rust <c>handlers/interview_reviewers.rs</c>, mounted at <c>/api/interview_reviewers</c>.</summary>
+/// <summary>Port of Rust <c>handlers/interview_reviewers.rs</c>, mounted at <c>/api/interviewReviewers</c>.</summary>
 public static class InterviewReviewerEndpoints
 {
     public static IEndpointRouteBuilder MapInterviewReviewerEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/interview_reviewers")
-            .WithTags("interview_reviewers")
+        var group = app.MapGroup("/api/interviewReviewers")
+            .WithTags("interviewReviewers")
             .RequireAuthorization()
             .AddEndpointFilter<ApiErrorFilter>();
 
-        group.MapGet("/get_all", GetAll).Produces<List<InterviewReviewerResponse>>();
+        group.MapGet("/getAll", GetAll).Produces<List<InterviewReviewerResponse>>();
 
         group.MapPost("/create", Create)
             .Produces<InterviewReviewerResponse>(StatusCodes.Status201Created)
@@ -76,7 +76,7 @@ public static class InterviewReviewerEndpoints
     private static decimal ParseScore(string value) =>
         decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var score)
             ? score
-            : throw new ApiException(StatusCodes.Status400BadRequest, "review_score must be a valid decimal");
+            : throw new ApiException(StatusCodes.Status400BadRequest, "reviewScore must be a valid decimal");
 
     private static async Task<InterviewReviewer> RequireAsync(AppDbContext db, int id, bool track, CancellationToken ct)
     {

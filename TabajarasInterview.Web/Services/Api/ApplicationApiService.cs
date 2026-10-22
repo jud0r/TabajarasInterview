@@ -20,7 +20,7 @@ namespace TabajarasInterview.Web.Services.Api
             {
                 var client = await authorizedFactory.CreateClientAsync(ClientName);
 
-                var response = await client.GetAsync($"api/candidate_applications/by_position/{positionId}", ct);
+                var response = await client.GetAsync($"api/candidateApplications/byPosition/{positionId}", ct);
                 return await parser.ParseAsync<List<ApplicationResponse>>(response, ct);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)

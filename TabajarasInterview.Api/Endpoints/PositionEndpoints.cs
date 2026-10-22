@@ -17,7 +17,7 @@ public static class PositionEndpoints
             .RequireAuthorization()
             .AddEndpointFilter<ApiErrorFilter>();
 
-        group.MapGet("/get_all", GetPositions).Produces<List<PositionResponse>>();
+        group.MapGet("/getAll", GetPositions).Produces<List<PositionResponse>>();
 
         group.MapPost("/create", CreatePosition)
             .Produces<PositionResponse>(StatusCodes.Status201Created)

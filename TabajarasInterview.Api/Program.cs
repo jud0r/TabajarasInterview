@@ -8,8 +8,8 @@ builder.AddServiceDefaults();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
-    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower));
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 });
 
 builder.Services.AddApiDocumentation();

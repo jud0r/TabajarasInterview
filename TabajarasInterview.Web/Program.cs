@@ -74,7 +74,7 @@ builder.Services.AddAuthentication(options =>
                 // HttpRequest.Cookies already URL-decodes the stored value, so the JWT is used
                 // as-is. Decoding again here would mangle the base64url signature segment and
                 // make every token fail signature validation (IDX10517).
-                var token = context.Request.Cookies["tabajaras_access_token"];
+                var token = context.Request.Cookies["tabajarasAccessToken"];
                 if (!string.IsNullOrEmpty(token))
                 {
                     context.Token = token;

@@ -57,7 +57,7 @@ public sealed class ApiBearerHandler(
             [
                 new Claim("sub", claims.Sub),
                 new Claim("id", claims.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                new Claim("token_type", claims.TokenType.ToClaimValue()),
+                new Claim("tokenType", claims.TokenType.ToClaimValue()),
             ],
             SchemeName,
             nameType: "sub",

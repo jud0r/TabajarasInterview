@@ -2,7 +2,7 @@ using TabajarasInterview.Api.Models;
 
 namespace TabajarasInterview.Api.Dtos;
 
-/// <summary>Rust <c>UserResponse</c> (users.rs). Serialized with snake_case names.</summary>
+/// <summary>Rust <c>UserResponse</c> (users.rs). Serialized with camelCase names.</summary>
 public sealed record UserResponse(
     int Id,
     string FirstName,

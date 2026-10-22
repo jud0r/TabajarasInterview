@@ -9,7 +9,7 @@ namespace TabajarasInterview.Web.Services.Api
     /// </summary>
     public interface IQuestionApiService
     {
-        /// <summary>Lists questions (<c>GET /api/questions/get_all</c>).</summary>
+        /// <summary>Lists questions (<c>GET /api/questions/getAll</c>).</summary>
         Task<ApiResult<List<QuestionResponse>>> GetQuestionsAsync(CancellationToken ct = default);
 
         /// <summary>Fetches a single question (<c>GET /api/questions/get/{id}</c>).</summary>

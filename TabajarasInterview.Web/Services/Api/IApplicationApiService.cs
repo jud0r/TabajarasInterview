@@ -9,7 +9,7 @@ namespace TabajarasInterview.Web.Services.Api
     /// </summary>
     public interface IApplicationApiService
     {
-        /// <summary>Lists the applications for a position (<c>GET /api/candidate_applications/by_position/{id}</c>).</summary>
+        /// <summary>Lists the applications for a position (<c>GET /api/candidateApplications/byPosition/{id}</c>).</summary>
         Task<ApiResult<List<ApplicationResponse>>> GetApplicationsByPositionAsync(int positionId, CancellationToken ct = default);
     }
 }

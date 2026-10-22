@@ -7,7 +7,7 @@ namespace TabajarasInterview.Web.Services.Api
     {
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
         {
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
         public async Task<ApiResult<T>> ParseAsync<T>(HttpResponseMessage httpResponse, CancellationToken ct = default)

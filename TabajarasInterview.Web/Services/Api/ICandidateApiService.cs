@@ -28,7 +28,7 @@ namespace TabajarasInterview.Web.Services.Api
         /// <summary>
         /// Lists the candidate's applications/positions with nested interviews, reviewers,
         /// questions and stacks (<c>GET /api/candidates/{id}/positions</c>). The API is
-        /// expected to back this endpoint with the <c>get_candidate_positions(candidate_id)</c>
+        /// expected to back this endpoint with the <c>getCandidatePositions(candidateId)</c>
         /// data source.
         /// </summary>
         Task<ApiResult<List<CandidateApplicationResponse>>> GetCandidatePositionsAsync(int candidateId, CancellationToken ct = default);

@@ -19,7 +19,7 @@ namespace TabajarasInterview.Web.Services.Api
         {
             var client = await authorizedFactory.CreateClientAsync(ClientName);
 
-            var response = await client.GetAsync("api/candidates/get_all", ct);
+            var response = await client.GetAsync("api/candidates/getAll", ct);
             return await parser.ParseAsync<List<CandidateResponse>>(response, ct);
         }
 
@@ -36,8 +36,8 @@ namespace TabajarasInterview.Web.Services.Api
             var client = await authorizedFactory.CreateClientAsync(ClientName);
             var payload = new
             {
-                first_name = request.FirstName,
-                last_name = request.LastName,
+                firstName = request.FirstName,
+                lastName = request.LastName,
                 email = request.Email,
                 phone = request.Phone
             };
@@ -52,8 +52,8 @@ namespace TabajarasInterview.Web.Services.Api
             // The API's UpdateCandidateRequest accepts only these fields; email is immutable.
             var payload = new
             {
-                first_name = request.FirstName,
-                last_name = request.LastName,
+                firstName = request.FirstName,
+                lastName = request.LastName,
                 phone = request.Phone,
                 email= request.Email
             };
@@ -76,7 +76,7 @@ namespace TabajarasInterview.Web.Services.Api
             {
                 var client = await authorizedFactory.CreateClientAsync(ClientName);
 
-                // Backed by get_candidate_positions(candidate_id) on the API side.
+                // Backed by getCandidatePositions(candidateId) on the API side.
                 var response = await client.GetAsync($"api/candidates/{candidateId}/positions", ct);
                 return await parser.ParseAsync<List<CandidateApplicationResponse>>(response, ct);
             }

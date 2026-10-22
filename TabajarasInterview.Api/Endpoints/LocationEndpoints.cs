@@ -18,7 +18,7 @@ public static class LocationEndpoints
             .RequireAuthorization()
             .AddEndpointFilter<ApiErrorFilter>();
 
-        locations.MapGet("/get_all", async (AppDbContext db, CancellationToken ct) =>
+        locations.MapGet("/getAll", async (AppDbContext db, CancellationToken ct) =>
         {
             var all = await db.Locations.AsNoTracking().ToListAsync(ct);
             return Results.Ok(all.Select(LocationResponse.From));

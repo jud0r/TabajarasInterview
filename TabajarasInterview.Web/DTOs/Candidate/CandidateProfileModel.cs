@@ -4,8 +4,8 @@ namespace TabajarasInterview.Web.DTOs.Candidate;
 /// A candidate's application to a single position, joined with its position,
 /// tech stacks and interviews. This is the shape returned by
 /// <c>GET /api/candidates/{id}/positions</c> (which internally calls the
-/// <c>get_candidate_positions(candidate_id)</c> data source). Property names map
-/// to the API's snake_case JSON through
+/// <c>getCandidatePositions(candidateId)</c> data source). Property names map
+/// to the API's camelCase JSON through
 /// <see cref="Services.Api.ApiResponseParserService"/>.
 /// </summary>
 /// <remarks>
@@ -15,7 +15,7 @@ namespace TabajarasInterview.Web.DTOs.Candidate;
 /// </remarks>
 public sealed class CandidateApplicationResponse
 {
-    /// <summary>Maps to <c>candidate_applications.id</c>.</summary>
+    /// <summary>Maps to <c>candidateApplications.id</c>.</summary>
     public int Id { get; set; }
 
     public int CandidateId { get; set; }
@@ -31,19 +31,19 @@ public sealed class CandidateApplicationResponse
     /// <summary>Application status (Applied, Screening, Interviewing, OfferExtended, Hired, Rejected, Withdrawn...).</summary>
     public string? Status { get; set; }
 
-    /// <summary>Maps to <c>candidate_applications.started_at</c>.</summary>
+    /// <summary>Maps to <c>candidateApplications.startedAt</c>.</summary>
     public DateTime? StartedAt { get; set; }
 
-    /// <summary>Maps to <c>candidate_applications.finished_at</c> (null while in progress).</summary>
+    /// <summary>Maps to <c>candidateApplications.finishedAt</c> (null while in progress).</summary>
     public DateTime? FinishedAt { get; set; }
 
-    /// <summary>Maps to <c>candidate_applications.final_score</c>.</summary>
+    /// <summary>Maps to <c>candidateApplications.finalScore</c>.</summary>
     public double? FinalScore { get; set; }
 
-    /// <summary>Maps to <c>candidate_applications.final_comments</c>.</summary>
+    /// <summary>Maps to <c>candidateApplications.finalComments</c>.</summary>
     public string? FinalComments { get; set; }
 
-    /// <summary>Tech stacks linked to the position (via <c>position_stacks</c>).</summary>
+    /// <summary>Tech stacks linked to the position (via <c>positionStacks</c>).</summary>
     public List<StackRef> Stacks { get; set; } = [];
 
     /// <summary>Interviews belonging to this application.</summary>
@@ -96,7 +96,7 @@ public sealed class InterviewResponse
     /// <summary>Interview status (Scheduled, InProgress, Completed, Cancelled, NoShow, Rescheduled...).</summary>
     public string? Status { get; set; }
 
-    /// <summary>Maps to <c>interviews.interviewer_id</c> (a <c>users</c> row).</summary>
+    /// <summary>Maps to <c>interviews.interviewerId</c> (a <c>users</c> row).</summary>
     public int? InterviewerId { get; set; }
 
     /// <summary>Interviewer display name (from the joined <c>users</c> row).</summary>
@@ -108,16 +108,16 @@ public sealed class InterviewResponse
     /// <summary>Maps to <c>interviews.comments</c>.</summary>
     public string? Comments { get; set; }
 
-    /// <summary>Maps to <c>interviews.created_at</c>.</summary>
+    /// <summary>Maps to <c>interviews.createdAt</c>.</summary>
     public DateTime? CreatedAt { get; set; }
 
-    /// <summary>Maps to <c>interviews.updated_at</c>.</summary>
+    /// <summary>Maps to <c>interviews.updatedAt</c>.</summary>
     public DateTime? UpdatedAt { get; set; }
 
-    /// <summary>Reviewer feedback (maps to <c>interview_reviewers</c>).</summary>
+    /// <summary>Reviewer feedback (maps to <c>interviewReviewers</c>).</summary>
     public List<InterviewReviewerResponse> Reviewers { get; set; } = [];
 
-    /// <summary>Questions asked during the interview (maps to <c>interview_questions</c>).</summary>
+    /// <summary>Questions asked during the interview (maps to <c>interviewQuestions</c>).</summary>
     public List<InterviewQuestionResponse> Questions { get; set; } = [];
 
     /// <summary>True when the interview reached a scored/finished state.</summary>
@@ -128,7 +128,7 @@ public sealed class InterviewResponse
 }
 
 /// <summary>
-/// Reviewer feedback for an interview (maps to <c>interview_reviewers</c> joined
+/// Reviewer feedback for an interview (maps to <c>interviewReviewers</c> joined
 /// with the reviewer's <c>users</c> row).
 /// </summary>
 public sealed class InterviewReviewerResponse
@@ -150,7 +150,7 @@ public sealed class InterviewReviewerResponse
 }
 
 /// <summary>
-/// A question asked during an interview (maps to <c>interview_questions</c>
+/// A question asked during an interview (maps to <c>interviewQuestions</c>
 /// joined with <c>questions</c> and, optionally, its <c>stacks</c> row).
 /// </summary>
 public sealed class InterviewQuestionResponse
@@ -190,9 +190,9 @@ public sealed class TimelineEvent
     public DateTime Timestamp { get; set; }
 
     /// <summary>
-    /// Machine-friendly event type: <c>candidate_created</c>, <c>application_started</c>,
-    /// <c>interview_created</c>, <c>interview_completed</c>, <c>application_finished</c>,
-    /// <c>final_decision</c>.
+    /// Machine-friendly event type: <c>candidateCreated</c>, <c>applicationStarted</c>,
+    /// <c>interviewCreated</c>, <c>interviewCompleted</c>, <c>applicationFinished</c>,
+    /// <c>finalDecision</c>.
     /// </summary>
     public string EventType { get; set; } = string.Empty;
 

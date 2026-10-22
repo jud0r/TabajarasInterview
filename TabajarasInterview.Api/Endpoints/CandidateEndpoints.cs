@@ -19,7 +19,7 @@ public static class CandidateEndpoints
             .RequireAuthorization()
             .AddEndpointFilter<ApiErrorFilter>();
 
-        group.MapGet("/get_all", GetCandidates)
+        group.MapGet("/getAll", GetCandidates)
             .Produces<List<CandidateResponse>>();
 
         group.MapPost("/create", CreateCandidate)
@@ -55,8 +55,8 @@ public static class CandidateEndpoints
         CancellationToken ct)
     {
         new RequestValidator()
-            .MinLength("first_name", payload.FirstName, 3, "first_name must be at least 3 characters")
-            .MinLength("last_name", payload.LastName, 3, "last_name must be at least 3 characters")
+            .MinLength("firstName", payload.FirstName, 3, "firstName must be at least 3 characters")
+            .MinLength("lastName", payload.LastName, 3, "lastName must be at least 3 characters")
             .Email("email", payload.Email, "email must be a valid email address")
             .ThrowIfInvalid();
 
@@ -91,8 +91,8 @@ public static class CandidateEndpoints
         CancellationToken ct)
     {
         new RequestValidator()
-            .MinLength("first_name", payload.FirstName, 3, "first_name must be at least 3 characters")
-            .MinLength("last_name", payload.LastName, 3, "last_name must be at least 3 characters")
+            .MinLength("firstName", payload.FirstName, 3, "firstName must be at least 3 characters")
+            .MinLength("lastName", payload.LastName, 3, "lastName must be at least 3 characters")
             .Email("email", payload.Email, "email must be a valid email address")
             .ThrowIfInvalid();
 

@@ -16,7 +16,7 @@ public static class UserEndpoints
             .WithTags("users")
             .AddEndpointFilter<ApiErrorFilter>();
 
-        group.MapGet("/get_all", GetUsers)
+        group.MapGet("/getAll", GetUsers)
             .RequireAuthorization()
             .Produces<List<UserResponse>>();
 
@@ -57,8 +57,8 @@ public static class UserEndpoints
     private static async Task<IResult> CreateUser(CreateUserRequest payload, AppDbContext db, TimeProvider time, CancellationToken ct)
     {
         new RequestValidator()
-            .MinLength("first_name", payload.FirstName, 3, "first_name must be at least 3 characters")
-            .MinLength("last_name", payload.LastName, 3, "last_name must be at least 3 characters")
+            .MinLength("firstName", payload.FirstName, 3, "firstName must be at least 3 characters")
+            .MinLength("lastName", payload.LastName, 3, "lastName must be at least 3 characters")
             .Email("email", payload.Email, "email must be a valid email address")
             .MinLength("password", payload.Password, 8, "password must be at least 8 characters")
             .ThrowIfInvalid();
@@ -106,8 +106,8 @@ public static class UserEndpoints
         CancellationToken ct)
     {
         new RequestValidator()
-            .MinLength("first_name", payload.FirstName, 3, "first_name must be at least 3 characters")
-            .MinLength("last_name", payload.LastName, 3, "last_name must be at least 3 characters")
+            .MinLength("firstName", payload.FirstName, 3, "firstName must be at least 3 characters")
+            .MinLength("lastName", payload.LastName, 3, "lastName must be at least 3 characters")
             .ThrowIfInvalid();
 
         var id = http.User.GetAuthUser().Id;
@@ -139,8 +139,8 @@ public static class UserEndpoints
         CancellationToken ct)
     {
         new RequestValidator()
-            .MinLength("current_password", payload.CurrentPassword, 8, "current_password must be at least 8 characters")
-            .MinLength("new_password", payload.NewPassword, 8, "new_password must be at least 8 characters")
+            .MinLength("currentPassword", payload.CurrentPassword, 8, "currentPassword must be at least 8 characters")
+            .MinLength("newPassword", payload.NewPassword, 8, "newPassword must be at least 8 characters")
             .ThrowIfInvalid();
 
         var id = http.User.GetAuthUser().Id;
